@@ -27,6 +27,8 @@ class Settings:
         self.openrouter_referer = os.getenv(
             "OPENROUTER_REFERER", "https://github.com/Pragyan-dev/second-opinion"
         )
+        # latency, throughput or price; empty uses OpenRouter's default routing.
+        self.openrouter_provider_sort = os.getenv("OPENROUTER_PROVIDER_SORT", "latency")
         # Jev runs on OpenRouter's Decisions API, so the OpenRouter key works by default.
         self.jev_api_key = os.getenv("JEV_API_KEY", "") or self.openrouter_api_key
         self.jev_api_url = os.getenv("JEV_API_URL", "https://openrouter.ai/api/alpha/decisions")

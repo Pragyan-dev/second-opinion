@@ -79,6 +79,11 @@ async def _complete(messages: list[dict], response_format: dict | None, deadline
     kwargs = {"model": settings.openrouter_model, "messages": messages}
     if response_format:
         kwargs["response_format"] = response_format
+    if settings.openrouter_provider_sort:
+        # Route to the fastest provider that supports every parameter we send (json_schema).
+        kwargs["extra_body"] = {
+            "provider": {"sort": settings.openrouter_provider_sort, "require_parameters": True}
+        }
     left = _remaining(deadline)
     try:
         response = await asyncio.wait_for(
