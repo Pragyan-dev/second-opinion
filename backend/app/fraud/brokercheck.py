@@ -121,12 +121,8 @@ def _walk(node, key=""):
         yield key, node
 
 
-async def live_search(query: str) -> OfficialContact | None:
-    key = f"bc:{' '.join(slugs(query)[:1]) or query.lower()}"
-    cached = await cache.get(key)
-    if cached is not None:
-        return _contact(cached["contact"]) if cached["contact"] else None
-    await _throttle.wait()
+async def fetch_search(query: str) -> dict:
+    """One raw BrokerCheck search request (no cache, no throttle)."""
     async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
         response = await client.get(
             settings.brokercheck_search_url,
@@ -142,7 +138,16 @@ async def live_search(query: str) -> OfficialContact | None:
             headers={"Accept": "application/json"},
         )
         response.raise_for_status()
-        contact = parse_search(response.json(), query)
+        return response.json()
+
+
+async def live_search(query: str) -> OfficialContact | None:
+    key = f"bc:{' '.join(slugs(query)[:1]) or query.lower()}"
+    cached = await cache.get(key)
+    if cached is not None:
+        return _contact(cached["contact"]) if cached["contact"] else None
+    await _throttle.wait()
+    contact = parse_search(await fetch_search(query), query)
     stored = {"contact": contact.model_dump(mode="json") if contact else None}
     await cache.set(key, stored, cache.BROKERCHECK_TTL)
     return contact
