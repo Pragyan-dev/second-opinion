@@ -1,16 +1,14 @@
-"""Fraud rdap fixture stub. Owner B."""
+"""Domain age lookup. Owner B."""
 
-from app.config import fixture
-from app.contracts import AgentResult
-from app.fraud.extract import fixture_name
+from app.contracts import Signal
+from app.core.steps import case_fixture
 
 
-class RdapAgent:
+class RdapStep:
     name = "rdap"
+    writes = ("site_visit",)
 
-    async def run(self, ctx: dict) -> AgentResult:
-        # TODO(B): implement rdap with cached evidence; retain fixture fallback.
-        report = fixture(fixture_name(ctx))
-        data = {"signals": [s for s in report["signals"] if s["id"] in ["domain_age"]]}
-        data.update({key: report[key] for key in []})
-        return AgentResult(agent=self.name, status="done", data=data)
+    async def run(self, ctx: dict) -> None:
+        for s in case_fixture(ctx)["signals"]:
+            if s["id"] == "domain_age":
+                ctx["signals"].append(Signal.model_validate(s))
