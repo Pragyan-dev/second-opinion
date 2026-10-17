@@ -1,4 +1,8 @@
-"""Pressure-language scoring with the Jev API, or the LLM when Jev is not configured. Owner B."""
+"""Pressure-language scoring. Owner B.
+
+Order: Jev (TypeSafe) on OpenRouter's Decisions API, then the OpenRouter LLM, then keyword
+patterns. Fixture mode uses the case fixture.
+"""
 
 import logging
 import re
@@ -57,6 +61,21 @@ KEYWORDS = {
     ],
 }
 SENTENCE_END = re.compile(r"(?<=[.!?])\s+|\n+")
+# One yes/no ("noul") Decisions question per flag.
+QUESTIONS = {
+    "guaranteed_returns": "Does the text promise guaranteed, risk-free or assured returns?",
+    "urgency_deadline": "Does the text pressure the reader to act quickly or before a deadline?",
+    "private_channel": "Does the text ask the reader to move to a private channel such as "
+    "WhatsApp, Telegram or direct messages?",
+    "exclusivity_secrecy": "Does the text present the offer as exclusive, secret, invitation "
+    "only or a private allocation?",
+    "unusual_payment": "Does the text ask for payment by wire transfer, crypto, gift cards or "
+    "another unusual method?",
+    "authority_claim": "Does the text claim regulatory approval, government backing or other "
+    "authority to win trust?",
+}
+YES = {"yes", "true", "y"}
+NO = {"no", "false", "n"}
 
 SYSTEM = (
     "You score captured investment messages for pressure tactics common in investment fraud. "
@@ -111,24 +130,91 @@ def keyword_scores(text: str) -> list[JevScore]:
     return scores
 
 
-async def call_jev(text: str) -> list[JevScore]:
-    # TODO(B): replace this request and response mapping with the Jev API docs that the sponsor
-    # shares at opening. Assumed shape: POST {text, flags} -> {flag: {confidence, evidence}}.
+def _number(value) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def yes_probability(answer) -> float:
+    """Probability of "yes" from one Decisions answer, across the shapes we may see.
+
+    TODO(B): confirm the response field names against a real Decisions response
+    (python -m app.fraud.probe prints them), then drop the shapes that do not occur.
+    """
+    if (value := _number(answer)) is not None:
+        return value
+    if isinstance(answer, str) and answer.strip().lower() in YES | NO:
+        return 1.0 if answer.strip().lower() in YES else 0.0
+    if isinstance(answer, dict):
+        for key in ("distribution", "probabilities", "probs", "scores"):
+            dist = answer.get(key)
+            if isinstance(dist, dict):
+                for label, value in dist.items():
+                    if str(label).strip().lower() in YES and _number(value) is not None:
+                        return float(value)
+            if isinstance(dist, list):
+                for entry in dist:
+                    if not isinstance(entry, dict):
+                        continue
+                    label = entry.get("label", entry.get("answer", entry.get("value")))
+                    prob = _number(entry.get("probability", entry.get("p", entry.get("score"))))
+                    if str(label).strip().lower() in YES and prob is not None:
+                        return prob
+        for key in ("p_yes", "probability", "score", "confidence"):
+            if (value := _number(answer.get(key))) is not None:
+                return value
+        if "answer" in answer:
+            return yes_probability(answer["answer"])
+    raise ValueError(f"Unrecognised Jev answer: {str(answer)[:200]}")
+
+
+def parse_decisions(data: dict) -> dict[str, float]:
+    answers = data
+    for key in ("answers", "results", "decisions", "output"):
+        if key in data:
+            answers = data[key]
+            break
+    if isinstance(answers, list):
+        answers = {
+            str(a.get("name", a.get("question", a.get("id")))): a
+            for a in answers
+            if isinstance(a, dict)
+        }
+    if not isinstance(answers, dict) or not all(flag in answers for flag in FLAGS):
+        raise ValueError(f"Jev response is missing flags; keys: {sorted(data)[:10]}")
+    return {flag: min(1.0, max(0.0, yes_probability(answers[flag]))) for flag in FLAGS}
+
+
+async def request_jev(text: str) -> dict:
+    """One raw Decisions API call."""
     async with httpx.AsyncClient(timeout=6) as client:
         response = await client.post(
             settings.jev_api_url,
-            headers={"Authorization": f"Bearer {settings.jev_api_key}"},
-            json={"text": text, "flags": list(FLAGS)},
+            headers={
+                "Authorization": f"Bearer {settings.jev_api_key}",
+                "HTTP-Referer": settings.openrouter_referer,
+                "X-Title": "Second Opinion",
+            },
+            json={
+                "model": settings.jev_model,
+                "state": text,
+                "questions": {
+                    flag: {"type": "noul", "instructions": question}
+                    for flag, question in QUESTIONS.items()
+                },
+            },
         )
         response.raise_for_status()
-        data = response.json()
+        return response.json()
+
+
+async def call_jev(text: str) -> list[JevScore]:
+    """Jev confidences, with evidence taken from the verbatim keyword sentence when one exists."""
+    confidences = parse_decisions(await request_jev(text))
+    evidence = {score.flag: score.evidence for score in keyword_scores(text)}
     return [
-        JevScore(
-            flag=flag,
-            label=label,
-            confidence=float(data.get(flag, {}).get("confidence", 0)),
-            evidence=str(data.get(flag, {}).get("evidence", "")),
-        )
+        JevScore(flag=flag, label=label, confidence=confidences[flag], evidence=evidence[flag])
         for flag, label in FLAGS.items()
     ]
 
@@ -156,7 +242,8 @@ class JevStep:
             scores = None
             if settings.jev_api_key and settings.jev_api_url:
                 try:
-                    scores = verify(await call_jev(text), text)
+                    # Jev scores the whole text; its evidence is already a verbatim sentence.
+                    scores = await call_jev(text)
                 except Exception as exc:
                     log.info("Jev API failed, using the LLM: %s", exc)
                     ctx["errors"]["jev_api"] = str(exc)
@@ -183,7 +270,9 @@ class JevStep:
                     id=score.flag,
                     label=score.label,
                     check="warn",
-                    detail=f'The text says: "{score.evidence}"',
+                    detail=f'The text says: "{score.evidence}"'
+                    if score.evidence
+                    else f"Jev rated this at {score.confidence:.2f}.",
                     source=source,
                     weight=1,
                 )
