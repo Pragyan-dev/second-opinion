@@ -1,44 +1,47 @@
-// Injected only by the Analyze button. Owner A.
+// Detector bridge and stock research chip. Owner A.
 (() => {
-  if (window.SecondOpinion) return;
-  function extractPage() {
-    const text = document.body.innerText.slice(0, 20000);
-    const anchors = [...document.querySelectorAll("a[href]")];
-    return {
-      url: location.href, title: document.title, text,
-      links: [...new Set(anchors.map(a => a.href))],
-      emails: [...new Set(anchors.filter(a => a.href.startsWith("mailto:")).map(a => a.href.slice(7).split("?")[0]))],
-      phones: [...new Set(anchors.filter(a => a.href.startsWith("tel:")).map(a => a.href.slice(4)))],
-      tickers: [...new Set([...text.matchAll(/\$([A-Z]{1,5})\b/g)].map(m => m[1]))],
+  if (globalThis.SecondOpinionV2) return;
+  const detectors = Promise.all(["gmail", "x", "robinhood", "website"].map(name =>
+    import(chrome.runtime.getURL(`detectors/${name}.js`))));
+  async function capture() {
+    for (const detector of await detectors) {
+      const result = detector.detect();
+      if (result) return result;
+    }
+    return null;
+  }
+  globalThis.SecondOpinionV2 = { capture };
+  chrome.runtime.onMessage.addListener((message, sender, respond) => {
+    if (message.type !== "CAPTURE") return;
+    capture().then(value => respond({ capture: value })).catch(error => respond({ error: error.message }));
+    return true;
+  });
+  let lastUrl = "";
+  async function refreshChip() {
+    if (location.hostname !== "robinhood.com") return;
+    const existing = document.getElementById("second-opinion-research-chip");
+    if (lastUrl === location.href && existing) return;
+    lastUrl = location.href;
+    const detected = await capture();
+    if (detected?.source_type !== "stock_page") { existing?.remove(); return; }
+    const symbol = detected.tickers[0];
+    const chip = existing || document.createElement("button");
+    chip.id = "second-opinion-research-chip"; chip.type = "button";
+    chip.textContent = `Research ${symbol}`;
+    chip.style.cssText = "position:fixed;bottom:20px;right:20px;z-index:2147483647;padding:10px 16px;border:1px solid #d5dcd2;border-radius:20px;background:#215758;color:white;cursor:pointer;font:14px system-ui";
+    chip.onclick = async () => {
+      chip.disabled = true;
+      try {
+        const job = await chrome.runtime.sendMessage({ type: "RESEARCH", symbol, source_url: detected.url });
+        if (job.error) throw new Error(job.error);
+        chip.textContent = "Dashboard opened";
+      } catch (error) { chip.textContent = `Retry research: ${error.message}`; }
+      finally { chip.disabled = false; }
     };
+    if (!existing) document.body.append(chip);
   }
-  function highlightTickers() {
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-    while (walker.nextNode()) {
-      const node = walker.currentNode;
-      if (!node.parentElement.closest("script,style,textarea,input,button,a,[contenteditable],.second-opinion-ticker") && /\$[A-Z]{1,5}\b/.test(node.textContent)) nodes.push(node);
-    }
-    for (const node of nodes) {
-      const fragment = document.createDocumentFragment();
-      let last = 0;
-      for (const match of node.textContent.matchAll(/\$([A-Z]{1,5})\b/g)) {
-        fragment.append(document.createTextNode(node.textContent.slice(last, match.index)));
-        const span = document.createElement("span");
-        span.className = "second-opinion-ticker";
-        span.textContent = match[0];
-        span.style.cssText = "cursor:pointer;text-decoration:underline dotted;text-underline-offset:4px";
-        span.setAttribute("role", "button"); span.tabIndex = 0;
-        span.title = "Open Second Opinion Stock X-ray (demo)";
-        const open = () => chrome.runtime.sendMessage({ type: "XRAY", symbol: match[1] }).catch(console.error);
-        span.addEventListener("click", open);
-        span.addEventListener("keydown", event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); open(); } });
-        fragment.append(span); last = match.index + match[0].length;
-      }
-      fragment.append(document.createTextNode(node.textContent.slice(last)));
-      node.replaceWith(fragment);
-    }
-  }
-  // TODO(A): refine extraction for complex pages while preserving the capture contract.
-  window.SecondOpinion = { extractPage, highlightTickers };
+  refreshChip().catch(console.error);
+  // Detect stock-to-stock SPA navigation and chip removal during a page render.
+  if (location.hostname === "robinhood.com") setInterval(() => refreshChip().catch(console.error), 750);
+  // TODO(A): keep detectors scoped to visible content when adapting new DOM layouts.
 })();

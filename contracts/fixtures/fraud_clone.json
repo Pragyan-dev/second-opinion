@@ -1,0 +1,165 @@
+{
+  "report_id": "clone-demo",
+  "status": "done",
+  "source_type": "email",
+  "page_url": "https://mail.google.com/mail/u/0/#inbox/demo-brightwater",
+  "entities": {
+    "firms": [
+      "Brightwater Capital Advisors"
+    ],
+    "tickers": [
+      "BRWT"
+    ],
+    "emails": [
+      "offers@brightwater-capital.example"
+    ],
+    "phones": [
+      "+1-202-555-0199"
+    ]
+  },
+  "site_visit": {
+    "start_url": "https://brightwater-capital.example",
+    "final_url": "https://brightwater-capital.example/",
+    "pages_visited": [
+      "https://brightwater-capital.example/",
+      "https://brightwater-capital.example/contact"
+    ],
+    "claimed_firm": "Brightwater Capital Advisors",
+    "claimed_crd": "DEMO-482619",
+    "phones": [
+      "+1-202-555-0199"
+    ],
+    "emails": [
+      "offers@brightwater-capital.example"
+    ],
+    "domain_age_days": 19
+  },
+  "signals": [
+    {
+      "id": "firm_record",
+      "label": "Matching firm name",
+      "check": "pass",
+      "detail": "The name appears in the fictional official record. This does not verify the sender.",
+      "source": {
+        "title": "Fictional official record (demo fixture)",
+        "url": "https://example.com/records/brightwater"
+      },
+      "weight": 0
+    },
+    {
+      "id": "contact_match",
+      "label": "Contact details differ",
+      "check": "fail",
+      "detail": "The contact details don't match the official record: phone and email domain differ.",
+      "source": {
+        "title": "Fictional official record (demo fixture)",
+        "url": "https://example.com/records/brightwater"
+      },
+      "weight": 3
+    },
+    {
+      "id": "domain_age",
+      "label": "Domain under 90 days old",
+      "check": "fail",
+      "detail": "The fictional domain was registered 19 days before the fixed demo date.",
+      "source": {
+        "title": "Captured fictional demo page",
+        "url": "http://localhost:5500/"
+      },
+      "weight": 2
+    },
+    {
+      "id": "guaranteed_returns",
+      "label": "Guaranteed returns",
+      "check": "warn",
+      "detail": "The captured page promises guaranteed monthly returns.",
+      "source": {
+        "title": "Captured fictional demo page",
+        "url": "http://localhost:5500/"
+      },
+      "weight": 1
+    },
+    {
+      "id": "urgency",
+      "label": "Short deadline",
+      "check": "warn",
+      "detail": "The captured page sets a 24-hour deadline.",
+      "source": {
+        "title": "Captured fictional demo page",
+        "url": "http://localhost:5500/"
+      },
+      "weight": 1
+    },
+    {
+      "id": "whatsapp",
+      "label": "Move to WhatsApp",
+      "check": "warn",
+      "detail": "The captured page moves the conversation to WhatsApp.",
+      "source": {
+        "title": "Captured fictional demo page",
+        "url": "http://localhost:5500/"
+      },
+      "weight": 1
+    }
+  ],
+  "jev_scores": [
+    {
+      "flag": "guaranteed_returns",
+      "label": "Guaranteed returns",
+      "confidence": 0.98,
+      "evidence": "Guaranteed monthly returns"
+    },
+    {
+      "flag": "urgency",
+      "label": "Urgency",
+      "confidence": 0.94,
+      "evidence": "Priority allocation closes in 24 hours."
+    },
+    {
+      "flag": "whatsapp",
+      "label": "Move to WhatsApp",
+      "confidence": 0.96,
+      "evidence": "Move the conversation to WhatsApp for private allocation instructions."
+    }
+  ],
+  "fraud_likelihood": 91,
+  "band": "high",
+  "band_reason": "The fixture combines contact mismatches, a new domain, and pressure tactics.",
+  "explanation": "The contact details don't match the official record in this fictional demo. Pause and independently confirm the sender using the official record. A firm name alone does not verify who sent a message. This is fixture data and provides no buy or sell advice.",
+  "official_contact": {
+    "firm": "Brightwater Capital Advisors",
+    "crd": "DEMO-482619",
+    "phone": "+1-202-555-0148",
+    "website": "https://brightwater-advisors.example",
+    "source": {
+      "title": "Fictional official record (demo fixture)",
+      "url": "https://example.com/records/brightwater"
+    }
+  },
+  "stock_pros": [
+    {
+      "text": "The demo data includes a quoted price and a year of history to examine.",
+      "source": {
+        "title": "Fictional BRWT data fixture",
+        "url": "https://example.com/fixtures/brwt"
+      }
+    }
+  ],
+  "stock_cons": [
+    {
+      "text": "Fictional OTC shares have unusually high volume and a large drawdown.",
+      "source": {
+        "title": "Fictional BRWT data fixture",
+        "url": "https://example.com/fixtures/brwt"
+      }
+    },
+    {
+      "text": "Most fixture coverage consists of press releases rather than independent reporting.",
+      "source": {
+        "title": "Fictional BRWT data fixture",
+        "url": "https://example.com/fixtures/brwt"
+      }
+    }
+  ],
+  "stock_research_id": "demo"
+}

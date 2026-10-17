@@ -18,11 +18,14 @@ class Settings:
         self.jev_api_key = os.getenv("JEV_API_KEY", "")
         self.nessie_api_key = os.getenv("NESSIE_API_KEY", "")
         self.news_api_key = os.getenv("NEWS_API_KEY", "")
+        self.robinhood_mcp_url = os.getenv("ROBINHOOD_MCP_URL", "")
+        self.search_provider = os.getenv("SEARCH_PROVIDER", "")
+        self.search_api_key = os.getenv("SEARCH_API_KEY", "")
         self.sec_user_agent = os.getenv("SEC_USER_AGENT", "")
         self.use_fixtures = os.getenv("USE_FIXTURES", "1") != "0" or not all(
             (self.llm_api_key, self.jev_api_key, self.news_api_key, self.sec_user_agent)
         )
-        self.bank_offline = os.getenv("BANK_OFFLINE", "0") == "1" or not self.nessie_api_key
+        self.funding_offline = os.getenv("BANK_OFFLINE", "0") == "1" or not self.nessie_api_key
         self.database = Path(os.getenv("DATABASE_PATH", str(ROOT / "jobs.sqlite")))
 
 

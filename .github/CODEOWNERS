@@ -5,7 +5,7 @@
 /demo-site/
 # B
 /backend/app/core/
-/backend/app/pitch/
+/backend/app/fraud/
 /backend/app/agents/llm/
 /backend/app/agents/__init__.py
 /backend/app/contracts.py
@@ -19,5 +19,6 @@
 /web/
 # D
 /backend/app/agents/data/
-/backend/app/bank/
+/backend/app/purchase/
 /scripts/seed_nessie.py
+/backend/tests/test_no_trade.py

@@ -8,10 +8,10 @@ setup:
 	cd web && npm install
 
 dev:
-	$(VENV)/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
+	$(VENV)/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload --reload-dir backend
 
 mock:
-	$(VENV)/uvicorn app.mock:app --app-dir backend --host 127.0.0.1 --port 8001 --reload
+	$(VENV)/uvicorn app.mock:app --app-dir backend --host 127.0.0.1 --port 8001 --reload --reload-dir backend
 
 web:
 	cd web && npm run dev

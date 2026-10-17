@@ -1,0 +1,15 @@
+{
+  "symbol": "BRWT",
+  "name": "BRWT fictional demonstration stock",
+  "last_price": 0.84,
+  "est_total": 8.4,
+  "tradable": false,
+  "buying_power_ok": null,
+  "warnings": [
+    "Simulated quote and review only.",
+    "Fictional BRWT is not a verified tradable security.",
+    "Any funding requires your explicit confirmation. No order has been placed."
+  ],
+  "data_source": "simulated",
+  "status": "awaiting_human"
+}
