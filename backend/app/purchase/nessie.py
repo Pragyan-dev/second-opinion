@@ -69,8 +69,8 @@ def _nessie_transfer(request: FundingRequest) -> dict:
 
     try:
         resp = httpx.post(url, json=payload, timeout=10)
-    except Exception as exc:
-        raise HTTPException(503, f"Nessie unreachable: {exc}") from exc
+    except Exception:
+        return _offline_transfer(request)
 
     if resp.status_code not in (200, 201):
         raise HTTPException(502, f"Nessie error {resp.status_code}: {resp.text[:200]}")
