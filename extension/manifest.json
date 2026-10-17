@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Second Opinion — demo",
+  "version": "0.1.0",
+  "description": "Fixture-backed investment pitch and Stock X-ray demo.",
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel"],
+  "host_permissions": ["http://localhost:8000/*", "http://localhost:8001/*"],
+  "action": {"default_popup": "popup/popup.html"},
+  "side_panel": {"default_path": "sidepanel/sidepanel.html"},
+  "background": {"service_worker": "background.js", "type": "module"},
+  "icons": {"16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png"}
+}
