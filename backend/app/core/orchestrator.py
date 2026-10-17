@@ -28,6 +28,8 @@ DEMO_FRAUD = {
 # Strong references so running pipelines are not garbage collected.
 _tasks: set[asyncio.Task] = set()
 _by_id: dict[str, asyncio.Task] = {}
+# Set when a stock job's sections are written, before its own summary runs.
+_sections_ready: dict[str, asyncio.Event] = {}
 
 
 def timeout_for(name: str) -> float:
@@ -43,6 +45,7 @@ def _spawn(job_id: str, coro) -> asyncio.Task:
         _tasks.discard(done)
         if _by_id.get(job_id) is done:
             _by_id.pop(job_id, None)
+            _sections_ready.pop(job_id, None)
 
     task.add_done_callback(forget)
     return task
@@ -128,6 +131,7 @@ async def start_stock_job(symbol: str, source_url: str | None = None, agents=Non
         dump(report),
         status="running",
     )
+    _sections_ready[research_id] = asyncio.Event()
     _spawn(research_id, run_stock(research_id, symbol, source_url, agents))
     return research_id
 
@@ -155,6 +159,8 @@ async def run_stock(research_id: str, symbol: str, source_url: str | None = None
     try:
         await asyncio.gather(*(one(agent) for agent in agents))
         ctx["sections"] = sections
+        if research_id in _sections_ready:
+            _sections_ready[research_id].set()
         from app.agents.llm.explainer import explain_stock
 
         try:
@@ -177,6 +183,18 @@ async def get_report(job_id: str, kind: str) -> dict | None:
     if kind == "stock" and job_id == "demo":
         return fixture("stock_demo.json")
     job = await store.get_job(job_id, kind)
+    return job["result"] if job else None
+
+
+async def wait_for_sections(job_id: str, timeout: float) -> dict | None:
+    """Wait up to `timeout` seconds for a stock job's sections (not its summary)."""
+    ready = _sections_ready.get(job_id)
+    if ready is not None and timeout > 0:
+        try:
+            await asyncio.wait_for(ready.wait(), timeout)
+        except asyncio.TimeoutError:
+            pass
+    job = await store.get_job(job_id)
     return job["result"] if job else None
 
 

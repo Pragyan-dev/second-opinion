@@ -120,7 +120,7 @@ class ExtractStep:
                     f"Captured content:\n<<<\n{_text(capture)[:LLM_TEXT_CAP]}\n>>>",
                     Names,
                     SYSTEM,
-                    timeout=6,
+                    timeout=settings.agent_timeout_s - 0.5,
                 )
                 names = {"firms": result.firms, "people": result.people}
                 ctx["claimed_affiliations"] = result.claimed_affiliations

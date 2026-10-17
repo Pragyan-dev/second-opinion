@@ -84,7 +84,7 @@ async def test_tickers_start_stock_job_and_drop_uncited(fake_llm, live, monkeypa
         return {"sections": {"market": section.model_dump()}}
 
     monkeypatch.setattr(explainer.orchestrator, "start_stock_job", start)
-    monkeypatch.setattr(explainer.orchestrator, "wait_for_job", wait)
+    monkeypatch.setattr(explainer.orchestrator, "wait_for_sections", wait)
     pros_cons = {
         "pros": [
             {"text": "A year of price history exists.", "source_url": "https://data.test/brwt"}

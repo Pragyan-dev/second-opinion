@@ -90,11 +90,10 @@ DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
 
 
 def decisions_answer(**yes):
+    # Shape returned by typesafe/jev-1.14.
     return {
-        "answers": {
-            flag: {"distribution": {"yes": yes.get(flag, 0.02), "no": 1 - yes.get(flag, 0.02)}}
-            for flag in jev.FLAGS
-        }
+        "model": "typesafe/jev-1.14-20261014",
+        "answers": {flag: {"type": "noul", "noul": yes.get(flag, 0.02)} for flag in jev.FLAGS},
     }
 
 
@@ -130,26 +129,14 @@ async def test_jev_decisions_api(respx_mock, jev_live):
     assert signals["authority_claim"].detail == "Jev rated this at 0.81."
 
 
-@pytest.mark.parametrize(
-    "answer,expected",
-    [
-        (0.4, 0.4),
-        ("yes", 1.0),
-        ({"probabilities": {"Yes": 0.7, "No": 0.3}}, 0.7),
-        ({"distribution": [{"label": "no", "p": 0.2}, {"label": "yes", "p": 0.8}]}, 0.8),
-        ({"p_yes": 0.55}, 0.55),
-        ({"answer": "no"}, 0.0),
-    ],
-)
-def test_yes_probability_shapes(answer, expected):
-    assert jev.yes_probability(answer) == expected
-
-
-def test_parse_decisions_list_shape_and_missing_flags():
-    data = {"results": [{"name": flag, "score": 0.5} for flag in jev.FLAGS]}
-    assert set(jev.parse_decisions(data).values()) == {0.5}
+def test_parse_decisions_rejects_unknown_shapes():
+    assert set(jev.parse_decisions(decisions_answer()).values()) == {0.02}
     with pytest.raises(ValueError):
-        jev.parse_decisions({"answers": {"guaranteed_returns": 0.9}})
+        jev.parse_decisions({"answers": {"guaranteed_returns": {"type": "noul", "noul": 0.9}}})
+    bad = decisions_answer()
+    bad["answers"]["authority_claim"] = {"type": "noul", "noul": "high"}
+    with pytest.raises(ValueError):
+        jev.parse_decisions(bad)
 
 
 async def test_unrecognised_jev_response_falls_back_to_llm(respx_mock, jev_live, fake_llm):
