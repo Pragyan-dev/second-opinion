@@ -1,20 +1,28 @@
-"""Routes only. Pipeline implementation belongs in core/. Owner B."""
+"""V2 routes only. Workflow implementation belongs in core/. Owner B."""
 
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from app.bank.nessie import summary
-from app.bank.payment_rules import PaymentExecution, check, execute
 from app.config import configure_cors
-from app.contracts import PageCapture, PaymentCheck, PaymentRequest, Report, StockXray
+from app.contracts import (
+    Capture,
+    FraudReport,
+    FundingRequest,
+    OrderPreview,
+    OrderTicket,
+    StockReport,
+)
 from app.core import orchestrator
+from app.purchase.nessie import fund, require_human_confirmation
+from app.purchase.preview import preview
 
 
-class XrayRequest(BaseModel):
+class StockRequest(BaseModel):
     symbol: str = Field(min_length=1, max_length=12, pattern=r"^[A-Za-z][A-Za-z0-9.-]*$")
+    source_url: str | None = None
 
 
-app = FastAPI(title="Second Opinion — fixture scaffold")
+app = FastAPI(title="Second Opinion v2 fixture scaffold")
 configure_cors(app)
 
 
@@ -23,40 +31,37 @@ def health():
     return {"ok": True}
 
 
-@app.post("/v1/analyze", status_code=202)
-def analyze(body: PageCapture, background: BackgroundTasks):
-    job = orchestrator.create_report(body)
-    background.add_task(orchestrator.run_report, job["report_id"], body)
+@app.post("/v1/fraud/analyze", status_code=202)
+def analyze(body: Capture, background: BackgroundTasks):
+    if len(body.text) > 20000:
+        raise HTTPException(422, "Captured text must be at most 20,000 characters")
+    job = orchestrator.create_fraud(body)
+    background.add_task(orchestrator.run_fraud, job["report_id"], body)
     return job
 
 
-@app.get("/v1/reports/{id}", response_model=Report)
-def report(id: str):
-    return orchestrator.get_job(id, "report")
+@app.get("/v1/fraud/{id}", response_model=FraudReport)
+def fraud(id: str):
+    return orchestrator.get_job(id, "fraud")
 
 
-@app.post("/v1/xray", status_code=202)
-def create_xray(body: XrayRequest, background: BackgroundTasks):
-    job = orchestrator.create_xray(body.symbol)
-    background.add_task(orchestrator.run_xray, job["xray_id"], body.symbol)
+@app.post("/v1/stock/research", status_code=202)
+def research(body: StockRequest, background: BackgroundTasks):
+    job = orchestrator.create_stock(body.symbol)
+    background.add_task(orchestrator.run_stock, job["research_id"], body.symbol, body.source_url)
     return job
 
 
-@app.get("/v1/xray/{id}", response_model=StockXray)
-def xray(id: str):
-    return orchestrator.get_job(id, "xray")
+@app.get("/v1/stock/{id}", response_model=StockReport)
+def stock(id: str):
+    return orchestrator.get_job(id, "stock")
 
 
-@app.get("/v1/bank/{customer_id}/summary")
-def bank_summary(customer_id: str):
-    return summary(customer_id)
+@app.post("/v1/purchase/preview", response_model=OrderPreview)
+async def purchase_preview(body: OrderTicket):
+    return await preview(body)
 
 
-@app.post("/v1/payments/check", response_model=PaymentCheck)
-def payment_check(body: PaymentRequest):
-    return check(body)
-
-
-@app.post("/v1/payments/execute")
-def payment_execute(body: PaymentExecution):
-    return execute(body)
+@app.post("/v1/purchase/fund", dependencies=[Depends(require_human_confirmation)])
+def purchase_fund(body: FundingRequest):
+    return fund(body)

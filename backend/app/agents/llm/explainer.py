@@ -1,16 +1,17 @@
-"""Plain-language explanation stub. Owner B."""
+"""Plain-language explanation fixture stub. Owner B."""
 
 from app.config import fixture
 from app.contracts import AgentResult
+from app.fraud.extract import fixture_name
 
 
 class ExplainerAgent:
     name = "explainer"
 
     async def run(self, ctx: dict) -> AgentResult:
-        # TODO(B): generate a sourced explanation without buy/sell advice.
+        # TODO(B): explain sourced evidence without buy or sell advice.
         return AgentResult(
             agent=self.name,
             status="done",
-            data={"explanation": fixture("report_demo.json")["explanation"]},
+            data={"explanation": fixture(fixture_name(ctx))["explanation"]},
         )

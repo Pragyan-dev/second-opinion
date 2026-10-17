@@ -1,0 +1,20 @@
+{
+  "links": [
+    "https://brightwater-capital.example/",
+    "https://example.com/whatsapp-demo"
+  ],
+  "emails": [
+    "offers@brightwater-capital.example"
+  ],
+  "phones": [
+    "+1-202-555-0199"
+  ],
+  "tickers": [
+    "BRWT"
+  ],
+  "sender": "Brightwater Capital Advisors <offers@brightwater-capital.example>",
+  "source_type": "email",
+  "url": "https://mail.google.com/mail/u/0/#inbox/demo-brightwater",
+  "title": "Your Brightwater allocation window",
+  "text": "Brightwater Capital Advisors invites you to explore $BRWT. Guaranteed monthly returns. Priority allocation closes in 24 hours. Move the conversation to WhatsApp for private allocation instructions. Fictional demo message."
+}

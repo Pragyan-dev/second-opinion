@@ -11,11 +11,4 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal)
   return response.json() as Promise<T>;
 }
 
-export interface BankSummary {
-  customer: { id: string; first_name: string; last_name: string };
-  reference_date: string;
-  accounts: { id: string; nickname: string; type: string; balance: number }[];
-  transactions: { id: string; account_id: string; date: string; description: string; amount: number; type: string }[];
-}
-
 export const dollars = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
