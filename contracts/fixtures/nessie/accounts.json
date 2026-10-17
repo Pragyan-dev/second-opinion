@@ -1,6 +1,5 @@
 {
-  "customer_id": "SEED_PENDING",
-  "from_account_id": "SEED_PENDING",
-  "to_account_id": "SEED_PENDING",
-  "_note": "Run scripts/seed_nessie.py with NESSIE_API_KEY set to populate real IDs"
+  "customer_id": "68395a5e-076e-49fe-ba22-a1c86daf2d2b",
+  "from_account_id": "a04e20c2-440e-4743-bb2c-9a436f303fa1",
+  "to_account_id": "02cb4b23-cf32-47df-9b85-d68b4aba25e5"
 }
