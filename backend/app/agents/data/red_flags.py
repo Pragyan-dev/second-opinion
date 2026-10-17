@@ -8,8 +8,9 @@ from pathlib import Path
 try:
     from app.contracts import AgentResult, Source
 except ImportError:
+    from typing import Literal, Optional
+
     from pydantic import BaseModel
-    from typing import Optional, Literal
 
     class Source(BaseModel):  # type: ignore[no-redef]
         title: str
@@ -80,7 +81,8 @@ async def _get_otc_info(symbol: str) -> dict:
         import httpx  # type: ignore
 
         url = f"https://www.otcmarkets.com/filing/json/getIssuerInfo?symbol={symbol}"
-        async with httpx.AsyncClient(timeout=8, headers={"User-Agent": "SecondOpinion/1.0"}) as client:
+        headers = {"User-Agent": "SecondOpinion/1.0"}
+        async with httpx.AsyncClient(timeout=8, headers=headers) as client:
             resp = await client.get(url, follow_redirects=True)
             if resp.status_code == 200:
                 data = resp.json()

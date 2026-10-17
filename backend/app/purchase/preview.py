@@ -76,7 +76,8 @@ async def preview(ticket: OrderTicket) -> OrderPreview:
             buying_power_ok = buying_power >= est_total
             if not buying_power_ok:
                 warnings.append(
-                    f"Buying power ${buying_power:.2f} is less than estimated total ${est_total:.2f}."
+                    f"Buying power ${buying_power:.2f} is less than"
+                    f" estimated total ${est_total:.2f}."
                 )
         except Exception:
             est_total = round(ticket.quantity * (ticket.limit_price or price), 2)
@@ -101,7 +102,9 @@ async def preview(ticket: OrderTicket) -> OrderPreview:
             result.symbol = ticket.symbol.upper()
             if result.symbol != "BRWT":
                 result.name = f"{result.symbol} simulated stock review"
-            estimate_price = ticket.limit_price if ticket.order_type == "limit" else result.last_price
+            estimate_price = (
+                ticket.limit_price if ticket.order_type == "limit" else result.last_price
+            )
             result.est_total = round(ticket.quantity * estimate_price, 2)
             result.data_source = "simulated"
             result.status = "awaiting_human"

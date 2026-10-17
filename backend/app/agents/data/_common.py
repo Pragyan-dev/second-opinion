@@ -4,7 +4,7 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Callable, Awaitable
+from typing import Awaitable, Callable
 
 ROOT = Path(__file__).resolve().parents[4]
 _CACHE_DIR = ROOT / ".agent_cache"
