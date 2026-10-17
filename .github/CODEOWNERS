@@ -1,0 +1,23 @@
+# Team handles intentionally unassigned at the request of the repository owner.
+# Add @github-handles after each pattern when the team is ready.
+# A
+/extension/
+/demo-site/
+# B
+/backend/app/core/
+/backend/app/pitch/
+/backend/app/agents/llm/
+/backend/app/agents/__init__.py
+/backend/app/contracts.py
+/backend/app/main.py
+/backend/app/mock.py
+/backend/app/config.py
+/contracts/
+/scripts/gen_types.sh
+/scripts/export_schema.py
+# C
+/web/
+# D
+/backend/app/agents/data/
+/backend/app/bank/
+/scripts/seed_nessie.py
