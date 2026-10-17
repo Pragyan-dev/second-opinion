@@ -1,0 +1,529 @@
+{
+  "$defs": {
+    "AgentResult": {
+      "properties": {
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "done",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "data": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Data",
+          "type": "object"
+        },
+        "sources": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "agent",
+        "status"
+      ],
+      "title": "AgentResult",
+      "type": "object"
+    },
+    "OfficialContact": {
+      "properties": {
+        "firm": {
+          "title": "Firm",
+          "type": "string"
+        },
+        "crd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crd"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone"
+        },
+        "website": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Website"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "required": [
+        "firm",
+        "source"
+      ],
+      "title": "OfficialContact",
+      "type": "object"
+    },
+    "PageCapture": {
+      "properties": {
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "links": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Links",
+          "type": "array"
+        },
+        "emails": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Emails",
+          "type": "array"
+        },
+        "phones": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Phones",
+          "type": "array"
+        },
+        "tickers": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Tickers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "url",
+        "title",
+        "text"
+      ],
+      "title": "PageCapture",
+      "type": "object"
+    },
+    "PaymentCheck": {
+      "properties": {
+        "level": {
+          "enum": [
+            "ok",
+            "caution",
+            "stop"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "flags": {
+          "items": {
+            "$ref": "#/$defs/Signal"
+          },
+          "title": "Flags",
+          "type": "array"
+        },
+        "hold_recommended": {
+          "title": "Hold Recommended",
+          "type": "boolean"
+        },
+        "linked_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Linked Report"
+        },
+        "official_contact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OfficialContact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "level",
+        "flags",
+        "hold_recommended"
+      ],
+      "title": "PaymentCheck",
+      "type": "object"
+    },
+    "PaymentRequest": {
+      "properties": {
+        "customer_id": {
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "from_account_id": {
+          "title": "From Account Id",
+          "type": "string"
+        },
+        "payee_account_id": {
+          "title": "Payee Account Id",
+          "type": "string"
+        },
+        "payee_name": {
+          "title": "Payee Name",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "report_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Id"
+        }
+      },
+      "required": [
+        "customer_id",
+        "from_account_id",
+        "payee_account_id",
+        "payee_name",
+        "amount"
+      ],
+      "title": "PaymentRequest",
+      "type": "object"
+    },
+    "Report": {
+      "properties": {
+        "report_id": {
+          "title": "Report Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "done",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "page_url": {
+          "title": "Page Url",
+          "type": "string"
+        },
+        "entities": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Entities",
+          "type": "object"
+        },
+        "signals": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Signal"
+          },
+          "title": "Signals",
+          "type": "array"
+        },
+        "band": {
+          "anyOf": [
+            {
+              "enum": [
+                "low",
+                "elevated",
+                "high",
+                "cant_tell"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Band"
+        },
+        "band_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Band Reason"
+        },
+        "explanation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explanation"
+        },
+        "official_contact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OfficialContact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "report_id",
+        "status",
+        "page_url",
+        "entities"
+      ],
+      "title": "Report",
+      "type": "object"
+    },
+    "Signal": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "check": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "unknown"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Source"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "weight": {
+          "default": 0,
+          "title": "Weight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "check",
+        "detail"
+      ],
+      "title": "Signal",
+      "type": "object"
+    },
+    "Source": {
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "url"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "StockXray": {
+      "properties": {
+        "xray_id": {
+          "title": "Xray Id",
+          "type": "string"
+        },
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "asset_type": {
+          "enum": [
+            "stock",
+            "etf",
+            "unknown"
+          ],
+          "title": "Asset Type",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "running",
+            "done",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "sections": {
+          "additionalProperties": {
+            "$ref": "#/$defs/AgentResult"
+          },
+          "title": "Sections",
+          "type": "object"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "questions": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "xray_id",
+        "symbol",
+        "asset_type",
+        "status",
+        "sections"
+      ],
+      "title": "StockXray",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SecondOpinionContracts",
+  "type": "object",
+  "properties": {
+    "PageCapture": {
+      "$ref": "#/$defs/PageCapture"
+    },
+    "Source": {
+      "$ref": "#/$defs/Source"
+    },
+    "Signal": {
+      "$ref": "#/$defs/Signal"
+    },
+    "OfficialContact": {
+      "$ref": "#/$defs/OfficialContact"
+    },
+    "Report": {
+      "$ref": "#/$defs/Report"
+    },
+    "AgentResult": {
+      "$ref": "#/$defs/AgentResult"
+    },
+    "StockXray": {
+      "$ref": "#/$defs/StockXray"
+    },
+    "PaymentRequest": {
+      "$ref": "#/$defs/PaymentRequest"
+    },
+    "PaymentCheck": {
+      "$ref": "#/$defs/PaymentCheck"
+    }
+  }
+}
