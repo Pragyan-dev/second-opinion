@@ -71,10 +71,19 @@ async def test_input_capped(fake_llm, monkeypatch):
     assert len(fake.calls[0]["messages"][1]["content"]) < jev.TEXT_CAP + 100
 
 
-async def test_llm_failure_raises_for_orchestrator(monkeypatch):
+async def test_llm_failure_uses_keyword_scores(monkeypatch):
     monkeypatch.setattr(settings, "use_fixtures", False)
-    with pytest.raises(jev.llm.LLMError):
-        await jev.JevStep().run(ctx_for())
+    ctx = ctx_for(crawl_text="Reserve your position with a $5,000 wire transfer. Call us.")
+    await jev.JevStep().run(ctx)
+    assert "jev_llm" in ctx["errors"]
+    scores = {s.flag: s for s in ctx["jev_scores"]}
+    assert scores["guaranteed_returns"].evidence == "Guaranteed monthly returns."
+    assert scores["urgency_deadline"].evidence == "Priority allocation closes in 24 hours."
+    assert scores["private_channel"].confidence == jev.KEYWORD_CONFIDENCE
+    payment = scores["unusual_payment"].evidence
+    assert payment == "Reserve your position with a $5,000 wire transfer."
+    assert scores["authority_claim"].confidence == 0
+    assert scores["authority_claim"].evidence == ""
 
 
 async def test_jev_api_when_configured(respx_mock, monkeypatch):
