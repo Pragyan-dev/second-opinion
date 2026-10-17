@@ -16,16 +16,16 @@ from app.contracts import (
     AgentResult,
     Capture,
     FraudReport,
-    OfficialContact,
     FundingRequest,
+    OfficialContact,
     OrderPreview,
     OrderTicket,
     StockReport,
 )
+from app.core import orchestrator
 from app.purchase.nessie import fund
 from app.purchase.preview import preview
 from app.purchase.robinhood_mcp import RobinhoodClient, RobinhoodUnavailable
-from app.core import orchestrator
 
 ROOT = Path(__file__).resolve().parents[2]
 
