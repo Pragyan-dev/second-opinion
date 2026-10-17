@@ -164,7 +164,12 @@ def test_start_url_skips_social_and_mail():
         url="https://x.com/a/status/1",
         title="t",
         text="",
-        links=["https://t.co/abc", "https://mail.google.com/x", "mailto:a@b.c", "https://firm.test/"],
+        links=[
+            "https://t.co/abc",
+            "https://mail.google.com/x",
+            "mailto:a@b.c",
+            "https://firm.test/",
+        ],
     )
     assert crawler.pick_start_url(capture) == "https://firm.test/"
     assert crawler.pick_start_url(website("https://site.test/p")) == "https://site.test/p"
