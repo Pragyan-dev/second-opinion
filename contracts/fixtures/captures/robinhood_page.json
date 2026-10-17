@@ -1,0 +1,13 @@
+{
+  "links": [],
+  "emails": [],
+  "phones": [],
+  "tickers": [
+    "BRWT"
+  ],
+  "sender": null,
+  "source_type": "stock_page",
+  "url": "https://robinhood.com/stocks/BRWT",
+  "title": "BRWT fictional stock page (synthetic demo)",
+  "text": "BRWT fictional demonstration stock. All quote and review data is simulated."
+}
