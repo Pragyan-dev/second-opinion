@@ -38,7 +38,7 @@ KEYWORDS = ("about", "contact", "team", "disclosure", "legal", "adv", "crs")
 FILE_EXTENSIONS = re.compile(
     r"\.(pdf|zip|exe|dmg|docx?|xlsx?|pptx?|csv|png|jpe?g|gif|mp4|mp3)$", re.IGNORECASE
 )
-TITLE_SPLIT = re.compile(r"\s+[|·–—:-]\s+")
+TITLE_SPLIT = re.compile(r"\s+[|\u00b7\u2013\u2014:-]\s+")  # pipe, middle dot, dashes
 MAX_PAGES = 5
 MAX_BYTES = 2 * 1024 * 1024
 MIN_TEXT = 200

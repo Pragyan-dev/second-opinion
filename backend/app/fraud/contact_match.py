@@ -39,6 +39,15 @@ def compare(
     def make(id, label, check, detail):
         return _signal(id, label, check, detail, contact)
 
+    if contact is None:
+        return [
+            make(id, label, "unknown", "No official record was available to compare with.")
+            for id, label in (
+                ("phone_match", "Phone not checked"),
+                ("email_domain_match", "Email domain not checked"),
+                ("website_match", "Website not checked"),
+            )
+        ]
     if not official_phone:
         phone = make("phone_match", "Phone not checked", "unknown",
                      "The official record has no phone number to compare.")
@@ -72,9 +81,12 @@ def compare(
         verb = "matches" if name else "does not match"
         name_note = f" The firm name {verb} {contact.firm}."
     if not official_domain or not site_domain:
-        missing = "the official record has no website" if not official_domain else "no site"
+        reason = (
+            "the official record lists no website" if not official_domain
+            else "no website was visited"
+        )
         website = make("website_match", "Website not checked", "unknown",
-                       f"Not compared because {missing} was available.{name_note}")
+                       f"Not compared because {reason}.{name_note}")
     elif site_domain == official_domain:
         website = make("website_match", "Website matches", "pass",
                        f"{site_domain} matches the official record.{name_note}")

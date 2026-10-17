@@ -50,6 +50,8 @@ def test_matches_and_unknowns():
     signals = compare(["+12025550101"], ["acme.test"], "acme.test", None, no_phone)
     assert [s.check for s in signals] == ["unknown", "unknown", "unknown"]
     assert all(s.source.url == "https://records.test/acme" for s in signals)
+    assert signals[2].detail == "Not compared because the official record lists no website."
     signals = compare([], [], None, None, None)
     assert [s.check for s in signals] == ["unknown", "unknown", "unknown"]
     assert all(s.source is None for s in signals)
+    assert signals[0].detail == "No official record was available to compare with."
