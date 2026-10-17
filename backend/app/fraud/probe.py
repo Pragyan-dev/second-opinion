@@ -63,10 +63,15 @@ async def probe_search() -> str:
 
 
 async def probe_jev() -> str:
-    if not settings.jev_api_key or not settings.jev_api_url:
-        raise Skip("JEV_API_KEY or JEV_API_URL not set")
-    scores = await jev.call_jev("Guaranteed monthly returns. Offer closes in 24 hours.")
-    return ", ".join(f"{s.flag}={s.confidence:.2f}" for s in scores)
+    if not settings.jev_api_key:
+        raise Skip("JEV_API_KEY and OPENROUTER_API_KEY not set")
+    data = await jev.request_jev("Guaranteed monthly returns. Offer closes in 24 hours.")
+    keys = f"model={settings.jev_model} keys={sorted(data)[:8]}"
+    try:
+        parsed = jev.parse_decisions(data)
+    except ValueError as exc:
+        return f"{keys}; parser needs updating: {exc}; raw={str(data)[:300]}"
+    return keys + " " + ", ".join(f"{flag}={p:.2f}" for flag, p in parsed.items())
 
 
 PROBES = [

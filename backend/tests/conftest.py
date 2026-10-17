@@ -8,6 +8,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 os.environ["USE_FIXTURES"] = "1"
+# A developer's .env must never reach tests: blank every key before config loads it.
+for _key in ("OPENROUTER_API_KEY", "JEV_API_KEY", "SEARCH_API_KEY", "SEARCH_PROVIDER"):
+    os.environ[_key] = ""
 os.environ.setdefault("DATABASE_PATH", str(Path(tempfile.mkdtemp()) / "jobs.sqlite"))
 
 import httpx2  # noqa: E402
@@ -37,6 +40,8 @@ def no_network(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "database", tmp_path / "jobs.sqlite")
     monkeypatch.setattr(settings, "use_fixtures", True)
     monkeypatch.setattr(settings, "fixture_agents", set())
+    for key in ("openrouter_api_key", "jev_api_key", "search_api_key", "search_provider"):
+        monkeypatch.setattr(settings, key, "")
     monkeypatch.setattr(llm, "_client", None)
     monkeypatch.setattr(llm, "_no_json_schema", set())
     yield

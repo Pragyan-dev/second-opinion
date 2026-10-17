@@ -86,25 +86,88 @@ async def test_llm_failure_uses_keyword_scores(monkeypatch):
     assert scores["authority_claim"].evidence == ""
 
 
-async def test_jev_api_when_configured(respx_mock, monkeypatch):
+DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
+
+
+def decisions_answer(**yes):
+    return {
+        "answers": {
+            flag: {"distribution": {"yes": yes.get(flag, 0.02), "no": 1 - yes.get(flag, 0.02)}}
+            for flag in jev.FLAGS
+        }
+    }
+
+
+@pytest.fixture
+def jev_live(monkeypatch):
     monkeypatch.setattr(settings, "use_fixtures", False)
-    monkeypatch.setattr(settings, "jev_api_key", "k")
-    monkeypatch.setattr(settings, "jev_api_url", "https://jev.test/score")
-    route = respx_mock.post("https://jev.test/score").mock(
+    monkeypatch.setattr(settings, "jev_api_key", "or-key")
+    monkeypatch.setattr(settings, "jev_api_url", DECISIONS_URL)
+
+
+async def test_jev_decisions_api(respx_mock, jev_live):
+    route = respx_mock.post(DECISIONS_URL).mock(
         return_value=httpx.Response(
-            200,
-            json={
-                "guaranteed_returns": {
-                    "confidence": 0.9,
-                    "evidence": "Guaranteed monthly returns",
-                }
-            },
+            200, json=decisions_answer(guaranteed_returns=0.93, authority_claim=0.81)
         )
     )
     ctx = ctx_for()
     await jev.JevStep().run(ctx)
-    assert route.called and route.calls[0].request.headers["authorization"] == "Bearer k"
-    assert ctx["jev_scores"][0].confidence == 0.9 and len(ctx["jev_scores"]) == 6
+    request = route.calls[0].request
+    assert request.headers["authorization"] == "Bearer or-key"
+    body = json.loads(request.content)
+    assert body["model"] == "typesafe/jev-1.13"
+    assert "Guaranteed monthly returns" in body["state"]
+    assert set(body["questions"]) == set(jev.FLAGS)
+    assert all(q["type"] == "noul" and q["instructions"] for q in body["questions"].values())
+    scores = {s.flag: s for s in ctx["jev_scores"]}
+    assert scores["guaranteed_returns"].confidence == 0.93
+    # Evidence is the verbatim sentence from the keyword matcher.
+    assert scores["guaranteed_returns"].evidence == "Guaranteed monthly returns."
+    assert scores["urgency_deadline"].confidence == 0.02
+    signals = {s.id: s for s in ctx["signals"]}
+    assert set(signals) == {"guaranteed_returns", "authority_claim"}
+    assert signals["authority_claim"].detail == "Jev rated this at 0.81."
+
+
+@pytest.mark.parametrize(
+    "answer,expected",
+    [
+        (0.4, 0.4),
+        ("yes", 1.0),
+        ({"probabilities": {"Yes": 0.7, "No": 0.3}}, 0.7),
+        ({"distribution": [{"label": "no", "p": 0.2}, {"label": "yes", "p": 0.8}]}, 0.8),
+        ({"p_yes": 0.55}, 0.55),
+        ({"answer": "no"}, 0.0),
+    ],
+)
+def test_yes_probability_shapes(answer, expected):
+    assert jev.yes_probability(answer) == expected
+
+
+def test_parse_decisions_list_shape_and_missing_flags():
+    data = {"results": [{"name": flag, "score": 0.5} for flag in jev.FLAGS]}
+    assert set(jev.parse_decisions(data).values()) == {0.5}
+    with pytest.raises(ValueError):
+        jev.parse_decisions({"answers": {"guaranteed_returns": 0.9}})
+
+
+async def test_unrecognised_jev_response_falls_back_to_llm(respx_mock, jev_live, fake_llm):
+    respx_mock.post(DECISIONS_URL).mock(return_value=httpx.Response(200, json={"weird": 1}))
+    claim = {"confidence": 0.9, "evidence": "Guaranteed monthly returns"}
+    fake = fake_llm([llm_answer(guaranteed_returns=claim)])
+    ctx = ctx_for()
+    await jev.JevStep().run(ctx)
+    assert "jev_api" in ctx["errors"] and len(fake.calls) == 1
+    assert ctx["jev_scores"][0].confidence == 0.9
+
+
+async def test_jev_http_error_falls_back(respx_mock, jev_live):
+    respx_mock.post(DECISIONS_URL).mock(return_value=httpx.Response(402))
+    ctx = ctx_for()
+    await jev.JevStep().run(ctx)
+    assert "jev_api" in ctx["errors"] and "jev_llm" in ctx["errors"]
+    assert {s.flag: s for s in ctx["jev_scores"]}["guaranteed_returns"].confidence == 0.7
 
 
 async def test_fixture_mode():
