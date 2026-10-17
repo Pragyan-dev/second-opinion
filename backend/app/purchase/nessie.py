@@ -76,7 +76,9 @@ def _nessie_transfer(request: FundingRequest) -> dict:
         raise HTTPException(502, f"Nessie error {resp.status_code}: {resp.text[:200]}")
 
     data = resp.json()
-    transfer_id = data.get("objectCreated", {}).get("_id") or data.get("_id") or f"nessie-{uuid4().hex}"
+    transfer_id = (
+        data.get("objectCreated", {}).get("_id") or data.get("_id") or f"nessie-{uuid4().hex}"
+    )
 
     # Cache the response for offline replay
     _FIXTURES_NESSIE.mkdir(parents=True, exist_ok=True)
