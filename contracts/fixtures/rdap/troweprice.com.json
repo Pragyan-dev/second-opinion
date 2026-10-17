@@ -1,0 +1,15 @@
+{
+  "objectClassName": "domain",
+  "handle": "TROWEPRICE-COM",
+  "ldhName": "troweprice.com",
+  "status": [
+    "active"
+  ],
+  "events": [
+    {
+      "eventAction": "registration",
+      "eventDate": "1995-07-06T00:00:00Z"
+    }
+  ],
+  "_note": "Cached from a live rdap.org lookup on 2026-10-17 (registration event only)."
+}
