@@ -1,5 +1,6 @@
 """Shared test setup: fixture mode on, temporary database, no real network, fake LLM."""
 
+import asyncio
 import os
 import socket
 import tempfile
@@ -14,7 +15,7 @@ import openai  # noqa: E402
 import pytest  # noqa: E402
 
 from app.config import settings  # noqa: E402
-from app.core import llm  # noqa: E402
+from app.core import llm, store  # noqa: E402
 
 _real_connect = socket.socket.connect
 
@@ -38,6 +39,10 @@ def no_network(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "fixture_agents", set())
     monkeypatch.setattr(llm, "_client", None)
     monkeypatch.setattr(llm, "_no_json_schema", set())
+    yield
+    # aiosqlite worker threads are not daemons; an open connection would hang pytest at exit.
+    if store._state.conn is not None:
+        asyncio.run(store.close())
 
 
 def bad_request(message="response_format json_schema is not supported"):
