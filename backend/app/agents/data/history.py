@@ -28,28 +28,25 @@ async def _fetch_history(symbol: str) -> dict:
             for d, c in zip(df.index, df["Close"])
         ]
 
-    series_1y = to_series(hist_1y)
-    # Thin 5-year to every 5th day
-    series_5y = to_series(hist_5y.iloc[::5])
+    prices_1y = to_series(hist_1y)
+    prices_5y = to_series(hist_5y.iloc[::5])  # thin to every 5th day
 
-    hi52 = float(hist_1y["Close"].max()) if len(hist_1y) else 0.0
-    lo52 = float(hist_1y["Close"].min()) if len(hist_1y) else 0.0
+    high_52w = float(hist_1y["Close"].max()) if len(hist_1y) else 0.0
+    low_52w = float(hist_1y["Close"].min()) if len(hist_1y) else 0.0
 
-    ret_1y = None
-    ret_5y = None
+    return_1y = None
+    return_5y = None
     if len(hist_1y) >= 2:
-        ret_1y = round((hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1) * 100, 2)
+        return_1y = round((hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1) * 100, 2)
     if len(hist_5y) >= 2:
-        ret_5y = round((hist_5y["Close"].iloc[-1] / hist_5y["Close"].iloc[0] - 1) * 100, 2)
+        return_5y = round((hist_5y["Close"].iloc[-1] / hist_5y["Close"].iloc[0] - 1) * 100, 2)
 
-    # Max drawdown over 5y
-    max_dd = None
-    if len(hist_5y) >= 2:
-        roll_max = hist_5y["Close"].cummax()
-        dd = (hist_5y["Close"] - roll_max) / roll_max
-        max_dd = round(float(dd.min()) * 100, 2)
+    max_drawdown_1y = None
+    if len(hist_1y) >= 2:
+        roll_max = hist_1y["Close"].cummax()
+        dd = (hist_1y["Close"] - roll_max) / roll_max
+        max_drawdown_1y = round(float(dd.min()) * 100, 2)
 
-    # Earnings dates (next a few)
     try:
         cal = tick.calendar
         earnings_dates = []
@@ -65,14 +62,13 @@ async def _fetch_history(symbol: str) -> dict:
         earnings_dates = []
 
     return {
-        "symbol": symbol,
-        "series_1y": series_1y,
-        "series_5y": series_5y,
-        "high_52w": hi52,
-        "low_52w": lo52,
-        "return_1y_pct": ret_1y,
-        "return_5y_pct": ret_5y,
-        "max_drawdown_5y_pct": max_dd,
+        "prices_1y": prices_1y,
+        "prices_5y": prices_5y,
+        "high_52w": high_52w,
+        "low_52w": low_52w,
+        "return_1y": return_1y,
+        "return_5y": return_5y,
+        "max_drawdown_1y": max_drawdown_1y,
         "earnings_dates": earnings_dates[:4],
     }
 
@@ -94,5 +90,5 @@ class HistoryAgent:
 
         data = await run_cached(f"history_{symbol}", lambda: _fetch_history(symbol))
         error = data.pop("error", None)
-        status = "error" if error and "cached copy used" not in (error or "") else "done"
+        status = "error" if error and "cached copy" not in (error or "") else "done"
         return AgentResult(agent=self.name, status=status, data=data, error=error)
