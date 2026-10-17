@@ -147,3 +147,24 @@ async def test_missing_and_demo_ids(client):
     assert (await client.get("/v1/fraud/nope")).status_code == 404
     assert (await client.get("/v1/stock/nope")).status_code == 404
     assert (await client.get("/v1/fraud/clone-demo")).json()["band"] == "high"
+
+
+async def test_wait_for_sections_does_not_wait_for_summary(client, monkeypatch):
+    from app.agents.llm import explainer
+
+    class Fast:
+        name = "fast"
+
+        async def run(self, ctx):
+            return AgentResult(agent=self.name, status="done", data={"price": 1})
+
+    async def slow_summary(ctx):
+        await asyncio.sleep(5)
+        return {}
+
+    monkeypatch.setattr(explainer, "explain_stock", slow_summary)
+    research_id = await orchestrator.start_stock_job("BRWT", None, [Fast()])
+    start = asyncio.get_running_loop().time()
+    result = await orchestrator.wait_for_sections(research_id, 3)
+    assert asyncio.get_running_loop().time() - start < 1
+    assert result["sections"]["fast"]["status"] == "done" and result["status"] == "running"

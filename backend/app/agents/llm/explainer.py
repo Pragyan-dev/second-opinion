@@ -5,6 +5,7 @@ anything a fraud, never give buy or sell advice, and cite only sources already g
 """
 
 import json
+import logging
 import re
 
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ from app.config import fixture, settings
 from app.contracts import AgentResult, Article, ProCon, Signal, Source
 from app.core import llm, orchestrator
 from app.core.steps import Deadline, case_fixture
+
+log = logging.getLogger(__name__)
 
 FORBIDDEN = re.compile(r"\b(buy|sell|invest now|you should invest)\b", re.IGNORECASE)
 ACCUSATION = re.compile(r"\bis (a|an) (fraud|scam)\b", re.IGNORECASE)
@@ -70,15 +73,20 @@ def unsafe(text: str) -> bool:
     return bool(FORBIDDEN.search(text) or ACCUSATION.search(text))
 
 
-async def guarded(call, texts_of):
+async def guarded(call, texts_of, errors: dict | None = None, name: str = "explainer"):
     """Run an LLM call; reject and retry once on forbidden wording. None means use a template."""
-    for _ in range(2):
+    for attempt in range(2):
         try:
             result = await call()
-        except llm.LLMError:
-            continue
-        if not unsafe(" ".join(texts_of(result))):
-            return result
+        except llm.LLMError as exc:
+            reason = f"LLM failed: {exc}"
+        else:
+            if not unsafe(" ".join(texts_of(result))):
+                return result
+            reason = "output used forbidden wording"
+        log.warning("%s attempt %d rejected: %s", name, attempt + 1, reason)
+        if errors is not None:
+            errors[name] = reason
     return None
 
 
@@ -160,6 +168,8 @@ async def stock_pros_cons(ctx: dict, stock: dict | None, deadline: Deadline) -> 
     result = await guarded(
         lambda: llm.structured(prompt, ProsCons, PROS_CONS_SYSTEM, deadline.left()),
         lambda r: [b.text for b in r.pros + r.cons],
+        ctx.get("errors"),
+        "explainer_pros_cons",
     )
     if result is None:
         return [], []
@@ -192,10 +202,12 @@ class ExplainerStep:
                 f"Check results:\n{facts(ctx)}", FRAUD_SYSTEM, deadline.left(reserve=6)
             ),
             lambda r: [r],
+            ctx.get("errors"),
+            "explainer_text",
         )
         ctx["explanation"] = text or fraud_template(ctx["signals"])
         if tickers:
-            stock = await orchestrator.wait_for_job(
+            stock = await orchestrator.wait_for_sections(
                 ctx["stock_research_id"], deadline.left(reserve=5)
             )
             ctx["stock_pros"], ctx["stock_cons"] = await stock_pros_cons(ctx, stock, deadline)

@@ -21,9 +21,14 @@ THROTTLE_S = 2.0
 FIRM_PAGE = "https://brokercheck.finra.org/firm/summary/{crd}"
 
 
+def _words(firm: str) -> list[str]:
+    """Lowercase name words without punctuation or legal suffixes."""
+    return [w for w in re.sub(r"[^\w\s]", " ", firm.lower()).split() if w not in LEGAL_SUFFIXES]
+
+
 def slugs(firm: str) -> list[str]:
     """Fixture names to try: hyphenated words, joined words, then the first word."""
-    words = [w for w in re.sub(r"[^\w\s]", " ", firm.lower()).split() if w not in LEGAL_SUFFIXES]
+    words = _words(firm)
     if not words:
         return []
     return list(dict.fromkeys(["-".join(words), "".join(words), words[0]]))
@@ -75,57 +80,55 @@ class _Throttle:
 _throttle = _Throttle()
 
 
-def parse_search(data: dict, query: str) -> OfficialContact | None:
-    """Pick the best firm hit from a BrokerCheck search response.
+def best_hit(data: dict, query: str) -> str | None:
+    """CRD of the search hit whose name best matches the query.
 
-    TODO(B): confirm field names against a real response from the BrokerCheck network tab.
+    Search hits carry firm_name and firm_source_id (the CRD) but no phone. Ties, common for
+    firms with many affiliates, go first to broker-dealers (only their detail records list a
+    business phone), then to the hit with the most branches.
     """
-    best, best_score = None, 0.0
+    ranked = []
     for hit in data.get("hits", {}).get("hits", []):
         source = hit.get("_source", {})
-        content = source.get("content", source)
-        if isinstance(content, str):
-            try:
-                content = json.loads(content)
-            except json.JSONDecodeError:
-                continue
-        basic = content.get("basicInformation", content)
-        name = basic.get("firmName") or basic.get("firm_name") or source.get("firm_name")
-        crd = basic.get("firmId") or basic.get("firm_source_id") or source.get("firm_source_id")
-        if not name or not crd:
-            continue
-        score = fuzz.token_set_ratio(name.lower(), query.lower())
-        if score > best_score:
-            phone = next(
-                (str(v) for k, v in _walk(content) if "phone" in k.lower() and v), None
-            )
-            best_score = score
-            best = OfficialContact(
-                firm=name,
-                crd=str(crd),
-                phone=normalize_phone(phone) if phone else None,
-                website=None,
-                source=Source(title="FINRA BrokerCheck", url=FIRM_PAGE.format(crd=crd)),
-            )
-    return best if best_score >= MATCH_THRESHOLD else None
+        name, crd = source.get("firm_name"), source.get("firm_source_id")
+        if name and crd:
+            score = fuzz.token_set_ratio(" ".join(_words(name)), " ".join(_words(query)))
+            broker_dealer = 1 if source.get("firm_bd_sec_number") else 0
+            branches = source.get("firm_branches_count") or 0
+            ranked.append((score, broker_dealer, branches, str(crd)))
+    if not ranked:
+        return None
+    score, _, _, crd = max(ranked)
+    return crd if score >= MATCH_THRESHOLD else None
 
 
-def _walk(node, key=""):
-    if isinstance(node, dict):
-        for k, v in node.items():
-            yield from _walk(v, k)
-    elif isinstance(node, list):
-        for v in node:
-            yield from _walk(v, key)
-    else:
-        yield key, node
+def parse_firm(data: dict) -> OfficialContact | None:
+    """Official contact from a firm detail response (GET {search url}/{crd})."""
+    hits = data.get("hits", {}).get("hits", [])
+    if not hits:
+        return None
+    content = hits[0].get("_source", {}).get("content", {})
+    if isinstance(content, str):
+        content = json.loads(content)
+    basic = content.get("basicInformation", {})
+    name, crd = basic.get("firmName"), basic.get("firmId")
+    if not name or not crd:
+        return None
+    phone = content.get("firmAddressDetails", {}).get("businessPhoneNumber")
+    return OfficialContact(
+        firm=name,
+        crd=str(crd),
+        phone=normalize_phone(phone) if phone else None,
+        website=None,  # BrokerCheck does not list firm websites.
+        source=Source(title="FINRA BrokerCheck", url=FIRM_PAGE.format(crd=crd)),
+    )
 
 
-async def fetch_search(query: str) -> dict:
-    """One raw BrokerCheck search request (no cache, no throttle)."""
+async def _get(url: str, query: str = "") -> dict:
+    await _throttle.wait()
     async with httpx.AsyncClient(timeout=5, follow_redirects=True) as client:
         response = await client.get(
-            settings.brokercheck_search_url,
+            url,
             params={
                 "query": query,
                 "hl": "true",
@@ -141,13 +144,26 @@ async def fetch_search(query: str) -> dict:
         return response.json()
 
 
+async def fetch_search(query: str) -> dict:
+    """One raw BrokerCheck firm search (no cache)."""
+    return await _get(settings.brokercheck_search_url, query)
+
+
+async def fetch_firm(crd: str) -> dict:
+    """One raw BrokerCheck firm detail request (no cache)."""
+    return await _get(f"{settings.brokercheck_search_url.rstrip('/')}/{crd}")
+
+
 async def live_search(query: str) -> OfficialContact | None:
-    key = f"bc:{' '.join(slugs(query)[:1]) or query.lower()}"
+    """Firm by CRD (digits) or by name, cached 24 h including misses."""
+    digits = re.sub(r"\D", "", query)
+    by_crd = bool(digits) and digits == query.strip()
+    key = f"bc:crd:{digits}" if by_crd else f"bc:{' '.join(slugs(query)[:1]) or query.lower()}"
     cached = await cache.get(key)
     if cached is not None:
         return _contact(cached["contact"]) if cached["contact"] else None
-    await _throttle.wait()
-    contact = parse_search(await fetch_search(query), query)
+    crd = digits if by_crd else best_hit(await fetch_search(query), query)
+    contact = parse_firm(await fetch_firm(crd)) if crd else None
     stored = {"contact": contact.model_dump(mode="json") if contact else None}
     await cache.set(key, stored, cache.BROKERCHECK_TTL)
     return contact
@@ -165,7 +181,8 @@ async def lookup(firm: str | None, crd: str | None) -> tuple[OfficialContact | N
         return found, False
     if not live_enabled():
         return None, False
-    for query in (crd, firm):
+    crd_digits = re.sub(r"\D", "", crd or "")
+    for query in (crd_digits, firm):
         if query and (found := await live_search(query)):
             return found, True
     return None, True

@@ -74,8 +74,6 @@ QUESTIONS = {
     "authority_claim": "Does the text claim regulatory approval, government backing or other "
     "authority to win trust?",
 }
-YES = {"yes", "true", "y"}
-NO = {"no", "false", "n"}
 
 SYSTEM = (
     "You score captured investment messages for pressure tactics common in investment fraud. "
@@ -130,60 +128,23 @@ def keyword_scores(text: str) -> list[JevScore]:
     return scores
 
 
-def _number(value) -> float | None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return None
-    return float(value)
-
-
-def yes_probability(answer) -> float:
-    """Probability of "yes" from one Decisions answer, across the shapes we may see.
-
-    TODO(B): confirm the response field names against a real Decisions response
-    (python -m app.fraud.probe prints them), then drop the shapes that do not occur.
-    """
-    if (value := _number(answer)) is not None:
-        return value
-    if isinstance(answer, str) and answer.strip().lower() in YES | NO:
-        return 1.0 if answer.strip().lower() in YES else 0.0
-    if isinstance(answer, dict):
-        for key in ("distribution", "probabilities", "probs", "scores"):
-            dist = answer.get(key)
-            if isinstance(dist, dict):
-                for label, value in dist.items():
-                    if str(label).strip().lower() in YES and _number(value) is not None:
-                        return float(value)
-            if isinstance(dist, list):
-                for entry in dist:
-                    if not isinstance(entry, dict):
-                        continue
-                    label = entry.get("label", entry.get("answer", entry.get("value")))
-                    prob = _number(entry.get("probability", entry.get("p", entry.get("score"))))
-                    if str(label).strip().lower() in YES and prob is not None:
-                        return prob
-        for key in ("p_yes", "probability", "score", "confidence"):
-            if (value := _number(answer.get(key))) is not None:
-                return value
-        if "answer" in answer:
-            return yes_probability(answer["answer"])
-    raise ValueError(f"Unrecognised Jev answer: {str(answer)[:200]}")
-
-
 def parse_decisions(data: dict) -> dict[str, float]:
-    answers = data
-    for key in ("answers", "results", "decisions", "output"):
-        if key in data:
-            answers = data[key]
-            break
-    if isinstance(answers, list):
-        answers = {
-            str(a.get("name", a.get("question", a.get("id")))): a
-            for a in answers
-            if isinstance(a, dict)
-        }
+    """Yes probabilities from a Decisions response.
+
+    Shape seen from typesafe/jev-1.14: {"answers": {flag: {"type": "noul", "noul": 0.97}}},
+    where the value under the type key is the probability of "yes".
+    """
+    answers = data.get("answers")
     if not isinstance(answers, dict) or not all(flag in answers for flag in FLAGS):
         raise ValueError(f"Jev response is missing flags; keys: {sorted(data)[:10]}")
-    return {flag: min(1.0, max(0.0, yes_probability(answers[flag]))) for flag in FLAGS}
+    confidences = {}
+    for flag in FLAGS:
+        answer = answers[flag]
+        value = answer.get(answer.get("type", "noul")) if isinstance(answer, dict) else None
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"Unrecognised Jev answer for {flag}: {str(answer)[:200]}")
+        confidences[flag] = min(1.0, max(0.0, float(value)))
+    return confidences
 
 
 async def request_jev(text: str) -> dict:

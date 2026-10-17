@@ -58,31 +58,79 @@ async def test_unknown_firm_without_live_lookup_is_unknown():
     assert ctx["signals"][0].check == "unknown"
 
 
+def search_hit(name, crd, branches=0, bd=None):
+    source = {"firm_name": name, "firm_source_id": crd, "firm_branches_count": branches}
+    if bd:
+        source["firm_bd_sec_number"] = bd
+    return {"_source": source}
+
+
+def test_best_hit_prefers_broker_dealer_then_branches():
+    hits = [
+        search_hit("T. ROWE PRICE JAPAN, INC.", "290585"),
+        search_hit("T. ROWE PRICE ADVISORY SERVICES, INC.", "108958", branches=505),
+        search_hit("T. ROWE PRICE INVESTMENT SERVICES, INC.", "8348", branches=34, bd="25130"),
+        search_hit("Unrelated Partners", "1"),
+    ]
+    assert brokercheck.best_hit({"hits": {"hits": hits}}, "T. Rowe Price") == "8348"
+    assert brokercheck.best_hit({"hits": {"hits": hits[3:]}}, "T. Rowe Price") is None
+
+
+def firm_detail(name, crd, phone):
+    content = {
+        "basicInformation": {"firmId": int(crd), "firmName": name},
+        "firmAddressDetails": {"businessPhoneNumber": phone},
+    }
+    return {"hits": {"hits": [{"_source": {"content": json.dumps(content)}}]}}
+
+
 async def test_live_search_match_and_not_found(respx_mock, monkeypatch):
     monkeypatch.setattr(settings, "use_fixtures", False)
     monkeypatch.setattr(settings, "live_brokercheck", True)
     monkeypatch.setattr(brokercheck, "THROTTLE_S", 0)
-    content = {"basicInformation": {"firmId": 1234, "firmName": "ACME WEALTH PARTNERS"},
-               "phone": "(202) 555-0177"}
-    hit = {"_source": {"content": json.dumps(content)}}
-    route = respx_mock.get(settings.brokercheck_search_url)
-    route.side_effect = [
-        httpx.Response(200, json={"hits": {"hits": [hit]}}),
+    hits = [
+        search_hit("ACME WEALTH PARTNERS JAPAN, INC.", "999", branches=0),
+        search_hit("ACME WEALTH PARTNERS, LLC", "1234", branches=40),
+    ]
+    search = respx_mock.get(settings.brokercheck_search_url)
+    search.side_effect = [
+        httpx.Response(200, json={"hits": {"hits": hits}}),
         httpx.Response(200, json={"hits": {"hits": []}}),
     ]
+    detail = respx_mock.get(f"{settings.brokercheck_search_url}/1234").mock(
+        return_value=httpx.Response(
+            200, json=firm_detail("ACME WEALTH PARTNERS, LLC", "1234", "(202) 555-0177")
+        )
+    )
     ctx = ctx_for(["Acme Wealth Partners"])
     await brokercheck.BrokercheckStep().run(ctx)
     contact = ctx["official_contact"]
     assert contact.crd == "1234" and contact.phone == "+12025550177"
-    assert contact.source.url.endswith("/1234")
-    assert route.calls[0].request.url.params["query"] == "Acme Wealth Partners"
+    assert contact.website is None and contact.source.url.endswith("/1234")
+    assert search.calls[0].request.url.params["query"] == "Acme Wealth Partners"
+    assert detail.call_count == 1
 
     ctx = ctx_for(["Ghost Capital"])
     await brokercheck.BrokercheckStep().run(ctx)
     assert ctx["signals"][0].id == "firm_not_found" and ctx["signals"][0].check == "fail"
-    # Cached: no third request.
+    # Cached: no third search.
     await brokercheck.BrokercheckStep().run(ctx_for(["Ghost Capital"]))
-    assert route.call_count == 2
+    assert search.call_count == 2
+
+
+async def test_live_lookup_by_crd_uses_detail_endpoint(respx_mock, monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    monkeypatch.setattr(settings, "live_brokercheck", True)
+    monkeypatch.setattr(brokercheck, "THROTTLE_S", 0)
+    detail = respx_mock.get(f"{settings.brokercheck_search_url}/8348").mock(
+        return_value=httpx.Response(
+            200,
+            json=firm_detail("T. ROWE PRICE INVESTMENT SERVICES, INC.", "8348", "(410) 345-2000"),
+        )
+    )
+    ctx = ctx_for(crd="CRD 8348")
+    await brokercheck.BrokercheckStep().run(ctx)
+    assert detail.called and ctx["official_contact"].phone == "+14103452000"
 
 
 async def test_live_error_is_unknown(respx_mock, monkeypatch):

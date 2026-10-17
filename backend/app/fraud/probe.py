@@ -47,10 +47,11 @@ async def probe_brokercheck() -> str:
     if not settings.live_brokercheck:
         raise Skip("LIVE_BROKERCHECK=0")
     data = await brokercheck.fetch_search("T. Rowe Price")
-    hits = data.get("hits", {}).get("hits", [])
-    contact = brokercheck.parse_search(data, "T. Rowe Price")
-    found = f"{contact.firm} CRD {contact.crd} phone {contact.phone}" if contact else "no match"
-    return f"{len(hits)} hits, best: {found}"
+    crd = brokercheck.best_hit(data, "T. Rowe Price")
+    if crd is None:
+        return f"{len(data.get('hits', {}).get('hits', []))} hits, no match"
+    contact = brokercheck.parse_firm(await brokercheck.fetch_firm(crd))
+    return f"best: {contact.firm} CRD {contact.crd} phone {contact.phone}"
 
 
 async def probe_search() -> str:
@@ -66,11 +67,11 @@ async def probe_jev() -> str:
     if not settings.jev_api_key:
         raise Skip("JEV_API_KEY and OPENROUTER_API_KEY not set")
     data = await jev.request_jev("Guaranteed monthly returns. Offer closes in 24 hours.")
-    keys = f"model={settings.jev_model} keys={sorted(data)[:8]}"
+    keys = f"model={data.get('model', settings.jev_model)}"
     try:
         parsed = jev.parse_decisions(data)
     except ValueError as exc:
-        return f"{keys}; parser needs updating: {exc}; raw={str(data)[:300]}"
+        raise ValueError(f"{keys}; parser needs updating: {exc}; raw={str(data)[:300]}")
     return keys + " " + ", ".join(f"{flag}={p:.2f}" for flag, p in parsed.items())
 
 
