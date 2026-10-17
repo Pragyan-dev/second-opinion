@@ -1,19 +1,10 @@
-"""Robinhood MCP read-and-review client. Owner D.
+"""Read and review Robinhood MCP client over streamable HTTP. Owner D."""
 
-Transport: HTTP POST to the Robinhood MCP endpoint (JSON-RPC 2.0 envelope).
-Auth: Bearer token via ROBINHOOD_MCP_TOKEN env var (OAuth session token from
-      Cursor or a manually extracted token). Without a token the client raises
-      RobinhoodUnavailable and preview.py falls back to simulated yfinance data.
+import json
 
-Hard rules (never remove):
-  - guard_tool() blocks all trading tool names before any network call.
-  - ALLOWED_TOOLS is the exclusive read-and-review allowlist; anything outside
-    it is rejected regardless of what the server exposes.
-"""
+import httpx
 
-import os
-
-ROBINHOOD_MCP_ENDPOINT = "https://agent.robinhood.com/mcp/trading"
+from app.config import settings
 
 ALLOWED_TOOLS = frozenset(
     {
@@ -24,19 +15,15 @@ ALLOWED_TOOLS = frozenset(
         "search",
     }
 )
+# TODO(D): verify these exact names against the live MCP tool list before integration.
 
-_FORBIDDEN_PREFIXES = (
-    "place_",
-    "cancel_",
-    "exercise_",
-    "submit_",
-    "execute_",
-    "replace_",
-)
+_PROTOCOL = "2025-03-26"
 
 
 def guard_tool(name: str) -> None:
-    if not isinstance(name, str) or name.startswith(_FORBIDDEN_PREFIXES):
+    if not isinstance(name, str) or name.startswith(
+        ("place_", "cancel_", "exercise_", "submit_", "execute_", "replace_")
+    ):
         raise ValueError("Trading tools are forbidden")
     if name not in ALLOWED_TOOLS:
         raise ValueError("Tool is outside the read and review allowlist")
@@ -47,51 +34,182 @@ class RobinhoodUnavailable(RuntimeError):
 
 
 class RobinhoodClient:
-    """Async MCP client. Calls are read/review only — guard_tool() enforces this."""
-
     def __init__(self) -> None:
-        self._token: str = os.getenv("ROBINHOOD_MCP_TOKEN", "")
-        self._url: str = os.getenv("ROBINHOOD_MCP_URL", ROBINHOOD_MCP_ENDPOINT)
+        self._session_id: str | None = None
+        self._initialized = False
+        self._next_id = 1
 
     async def call_tool(self, name: str, arguments: dict) -> dict:
-        guard_tool(name)  # Must stay before any network call.
-
-        if not self._token:
-            raise RobinhoodUnavailable(
-                "ROBINHOOD_MCP_TOKEN is not set — falling back to simulated data"
-            )
-
-        return await self._post(name, arguments)
-
-    async def _post(self, name: str, arguments: dict) -> dict:
-        import httpx
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {"name": name, "arguments": arguments},
-        }
-        headers = {
-            "Authorization": f"Bearer {self._token}",
-            "Content-Type": "application/json",
-        }
+        guard_tool(name)
+        url = settings.robinhood_mcp_url.strip()
+        token = _bearer(settings.robinhood_mcp_token)
+        if not url or not token:
+            raise RobinhoodUnavailable("Robinhood MCP URL or token is not configured")
 
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.post(self._url, json=payload, headers=headers)
+            async with httpx.AsyncClient(timeout=20) as client:
+                if not self._initialized:
+                    await self._initialize(client, url, token)
+                result = await self._rpc(
+                    client,
+                    url,
+                    token,
+                    "tools/call",
+                    {"name": name, "arguments": _arguments(name, arguments)},
+                )
+        except RobinhoodUnavailable:
+            raise
         except Exception as exc:
-            raise RobinhoodUnavailable(f"Network error reaching Robinhood MCP: {exc}") from exc
+            raise RobinhoodUnavailable("Robinhood MCP request failed") from exc
 
-        if resp.status_code == 401:
-            raise RobinhoodUnavailable("Robinhood MCP token invalid or expired (401)")
-        if resp.status_code != 200:
-            raise RobinhoodUnavailable(
-                f"Robinhood MCP returned {resp.status_code}: {resp.text[:200]}"
-            )
+        if not isinstance(result, dict):
+            raise RobinhoodUnavailable("Robinhood MCP returned an unreadable result")
+        if result.get("isError"):
+            raise RobinhoodUnavailable("Robinhood MCP tool error")
+        return _present(name, _tool_payload(result))
 
-        body = resp.json()
-        if "error" in body:
-            raise RobinhoodUnavailable(f"Robinhood MCP error: {body['error']}")
+    async def _initialize(self, client: httpx.AsyncClient, url: str, token: str) -> None:
+        await self._rpc(
+            client,
+            url,
+            token,
+            "initialize",
+            {
+                "protocolVersion": _PROTOCOL,
+                "capabilities": {},
+                "clientInfo": {"name": "second-opinion", "version": "0.1.0"},
+            },
+        )
+        await self._post(
+            client,
+            url,
+            token,
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            expect_body=False,
+        )
+        self._initialized = True
 
-        return body.get("result", {})
+    async def _rpc(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        token: str,
+        method: str,
+        params: dict,
+    ) -> dict:
+        message = await self._post(
+            client,
+            url,
+            token,
+            {"jsonrpc": "2.0", "id": self._next_id, "method": method, "params": params},
+        )
+        self._next_id += 1
+        if not isinstance(message, dict):
+            raise RobinhoodUnavailable("Robinhood MCP returned an empty response")
+        error = message.get("error")
+        if isinstance(error, dict):
+            raise RobinhoodUnavailable(str(error.get("message") or "Robinhood MCP error"))
+        result = message.get("result")
+        if not isinstance(result, dict):
+            raise RobinhoodUnavailable("Robinhood MCP returned an unreadable result")
+        return result
+
+    async def _post(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        token: str,
+        payload: dict,
+        *,
+        expect_body: bool = True,
+    ) -> dict | None:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+            "MCP-Protocol-Version": _PROTOCOL,
+        }
+        if self._session_id:
+            headers["Mcp-Session-Id"] = self._session_id
+        response = await client.post(url, json=payload, headers=headers)
+        session_id = response.headers.get("mcp-session-id")
+        if session_id:
+            self._session_id = session_id
+        if response.status_code >= 400:
+            raise RobinhoodUnavailable(f"Robinhood MCP HTTP {response.status_code}")
+        if not expect_body or not response.content:
+            return None
+        return _parse_message(response)
+
+
+def _bearer(token: str) -> str:
+    value = token.strip()
+    if value.lower().startswith("bearer "):
+        return value[7:].strip()
+    return value
+
+
+def _arguments(name: str, arguments: dict) -> dict:
+    args = dict(arguments or {})
+    if name in {"get_equity_quotes", "get_equity_tradability"} and "symbols" not in args:
+        symbol = args.pop("symbol", None)
+        if symbol:
+            args["symbols"] = [symbol]
+    return args
+
+
+def _parse_message(response: httpx.Response) -> dict:
+    content_type = response.headers.get("content-type", "")
+    if "text/event-stream" in content_type:
+        for line in response.text.splitlines():
+            if not line.startswith("data:"):
+                continue
+            data = line[5:].strip()
+            if not data:
+                continue
+            message = json.loads(data)
+            if isinstance(message, dict) and ("result" in message or "error" in message):
+                return message
+        raise RobinhoodUnavailable("Robinhood MCP returned an empty event stream")
+    message = response.json()
+    if not isinstance(message, dict):
+        raise RobinhoodUnavailable("Robinhood MCP returned an unreadable result")
+    return message
+
+
+def _tool_payload(result: dict) -> dict:
+    structured = result.get("structuredContent")
+    if isinstance(structured, dict):
+        data = structured.get("data", structured)
+        if isinstance(data, dict):
+            return data
+    for item in result.get("content") or []:
+        if not isinstance(item, dict) or item.get("type") != "text":
+            continue
+        try:
+            parsed = json.loads(item.get("text") or "")
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            data = parsed.get("data", parsed)
+            if isinstance(data, dict):
+                return data
+    return result
+
+
+def _present(name: str, data: dict) -> dict:
+    if name == "get_equity_quotes":
+        results = data.get("results") or []
+        quote = results[0].get("quote") if results and isinstance(results[0], dict) else None
+        if isinstance(quote, dict):
+            return {**quote, "results": results}
+    if name == "get_equity_tradability":
+        results = data.get("results") or []
+        row = results[0] if results and isinstance(results[0], dict) else None
+        if isinstance(row, dict):
+            return {**row, "is_tradable": row.get("tradeable")}
+    if name == "get_portfolio":
+        buying_power = data.get("buying_power")
+        if isinstance(buying_power, dict) and "buying_power" in buying_power:
+            return {**data, "buying_power": buying_power["buying_power"]}
+    return data

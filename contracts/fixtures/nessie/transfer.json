@@ -1,4 +1,11 @@
 {
-  "_id": "offline-placeholder-00000000000000000000000000000000",
-  "_note": "Placeholder for offline replay. Run seed_nessie.py to replace with a real Nessie transfer."
+  "code": 201,
+  "message": "Transfer created",
+  "objectCreated": {
+    "transaction_date": "2026-10-17",
+    "status": "pending",
+    "amount": 1,
+    "description": "Second Opinion demo transfer to 02cb4b23-cf32-47df-9b85-d68b4aba25e5",
+    "_id": "e33c9667-4423-45e0-aa10-542072f669c9"
+  }
 }

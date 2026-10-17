@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parents[4]
 _CACHE_DIR = ROOT / ".agent_cache"
 _CACHE_DIR.mkdir(exist_ok=True)
 
-_DATA_OFFLINE = os.getenv("DATA_OFFLINE", "0") == "1"
 _TIMEOUT_SECONDS = 8
+_CACHE_TTL_SECONDS = 24 * 60 * 60
 
 
 def _cache_path(key: str) -> Path:
@@ -27,6 +27,17 @@ def _load_cache(key: str) -> dict | None:
         except Exception:
             return None
     return None
+
+
+def _offline() -> bool:
+    return os.getenv("DATA_OFFLINE", "0") == "1"
+
+
+def _is_fresh(cached: dict) -> bool:
+    as_of = cached.get("as_of")
+    if isinstance(as_of, bool) or not isinstance(as_of, (int, float)):
+        return False
+    return time.time() - float(as_of) <= _CACHE_TTL_SECONDS
 
 
 def _save_cache(key: str, data: dict) -> None:
@@ -46,7 +57,7 @@ async def run_cached(
     """
     cached = _load_cache(key)
 
-    if _DATA_OFFLINE:
+    if _offline():
         if cached:
             cached["error"] = "DATA_OFFLINE – cached copy used"
             return cached
@@ -60,7 +71,7 @@ async def run_cached(
         _save_cache(key, result)
         return result
     except Exception as exc:
-        if cached:
+        if cached and _is_fresh(cached):
             cached["error"] = f"cached copy used (live fetch failed: {exc})"
             return cached
         return {"error": f"live fetch failed and no cache available: {exc}"}

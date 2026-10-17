@@ -9,17 +9,29 @@ from app.contracts import OrderPreview, OrderTicket
 from app.purchase.robinhood_mcp import RobinhoodClient, RobinhoodUnavailable
 
 
+async def _fetch_yfinance_quote(ticket: OrderTicket) -> dict:
+    import yfinance as yf  # type: ignore
+
+    info = yf.Ticker(ticket.symbol).fast_info
+    return {"last_price": float(info.last_price), "name": ticket.symbol.upper()}
+
+
 async def _yfinance_preview(ticket: OrderTicket) -> OrderPreview:
     """Simulated preview built from yfinance data. No Robinhood call."""
-    try:
-        import yfinance as yf  # type: ignore
+    from app.agents.data._common import run_cached
 
-        info = yf.Ticker(ticket.symbol).fast_info
-        price = float(info.last_price)
-        name = ticket.symbol.upper()
-    except Exception:
+    data = await run_cached(
+        f"preview_{ticket.symbol.upper()}", lambda: _fetch_yfinance_quote(ticket)
+    )
+    error = str(data.get("error") or "")
+    if "last_price" not in data:
         price = ticket.limit_price or 0.0
         name = ticket.symbol.upper()
+        source = "simulated"
+    else:
+        price = float(data["last_price"])
+        name = str(data.get("name") or ticket.symbol.upper())
+        source = "cached" if "cached copy" in error else "simulated"
 
     estimate_price = ticket.limit_price if ticket.order_type == "limit" else price
     return OrderPreview(
@@ -33,7 +45,7 @@ async def _yfinance_preview(ticket: OrderTicket) -> OrderPreview:
             "Simulated quote — Robinhood MCP unavailable.",
             "Any funding requires your explicit confirmation. No order has been placed.",
         ],
-        data_source="simulated",
+        data_source=source,
         status="awaiting_human",
     )
 
@@ -68,6 +80,7 @@ async def preview(ticket: OrderTicket) -> OrderPreview:
         except Exception:
             pass
 
+        est_total = round(ticket.quantity * (ticket.limit_price or price), 2)
         try:
             portfolio = await rh.call_tool("get_portfolio", {})
             buying_power = float(portfolio.get("buying_power", 0))
@@ -99,8 +112,9 @@ async def preview(ticket: OrderTicket) -> OrderPreview:
         # Fall back to yfinance if USE_FIXTURES is off, else use cached fixture
         if settings.use_fixtures:
             result = OrderPreview.model_validate(fixture("preview_demo.json"))
+            fixture_symbol = result.symbol.upper()
             result.symbol = ticket.symbol.upper()
-            if result.symbol != "BRWT":
+            if result.symbol != fixture_symbol:
                 result.name = f"{result.symbol} simulated stock review"
             estimate_price = (
                 ticket.limit_price if ticket.order_type == "limit" else result.last_price

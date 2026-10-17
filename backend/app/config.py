@@ -19,6 +19,7 @@ class Settings:
         self.nessie_api_key = os.getenv("NESSIE_API_KEY", "")
         self.news_api_key = os.getenv("NEWS_API_KEY", "")
         self.robinhood_mcp_url = os.getenv("ROBINHOOD_MCP_URL", "")
+        self.robinhood_mcp_token = os.getenv("ROBINHOOD_MCP_TOKEN", "")
         self.search_provider = os.getenv("SEARCH_PROVIDER", "")
         self.search_api_key = os.getenv("SEARCH_API_KEY", "")
         self.sec_user_agent = os.getenv("SEC_USER_AGENT", "")

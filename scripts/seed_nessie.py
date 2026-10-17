@@ -24,7 +24,7 @@ FIXTURES.mkdir(parents=True, exist_ok=True)
 
 sys.path.insert(0, str(ROOT / "backend"))
 
-BASE_URL = "http://api.nessieisreal.com"
+BASE_URL = "https://api.nessieisreal.com"
 
 
 def _key() -> str:

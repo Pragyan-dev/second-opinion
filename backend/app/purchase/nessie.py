@@ -57,15 +57,14 @@ def _nessie_transfer(request: FundingRequest) -> dict:
     if not api_key:
         raise HTTPException(503, "Nessie API key not configured")
 
+    # The live sandbox rejects `medium` and `payee_id` as unknown fields.
     payload = {
-        "medium": "balance",
-        "payee_id": request.to_account_id,
         "amount": request.amount,
-        "description": "Second Opinion demo transfer",
+        "description": f"Second Opinion demo transfer to {request.to_account_id}",
         "transaction_date": _today(),
         "status": "pending",
     }
-    url = f"http://api.nessieisreal.com/accounts/{request.from_account_id}/transfers?key={api_key}"
+    url = f"https://api.nessieisreal.com/accounts/{request.from_account_id}/transfers?key={api_key}"
 
     try:
         resp = httpx.post(url, json=payload, timeout=10)
