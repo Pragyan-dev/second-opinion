@@ -1,0 +1,77 @@
+{
+  "report_id": "real-demo",
+  "status": "done",
+  "source_type": "social_post",
+  "page_url": "https://x.com/TRowePrice/status/0000000000000000000",
+  "entities": {
+    "firms": [
+      "T. Rowe Price"
+    ],
+    "handles": [
+      "@TRowePrice"
+    ],
+    "tickers": []
+  },
+  "site_visit": {
+    "start_url": "https://www.troweprice.com/",
+    "final_url": "https://www.troweprice.com/",
+    "pages_visited": [
+      "https://www.troweprice.com/"
+    ],
+    "claimed_firm": "T. Rowe Price",
+    "claimed_crd": null,
+    "phones": [],
+    "emails": [],
+    "domain_age_days": null
+  },
+  "signals": [
+    {
+      "id": "contact_match",
+      "label": "Website references match",
+      "check": "pass",
+      "detail": "The captured website matches the placeholder record in this simulated case. No actual account has been verified.",
+      "source": {
+        "title": "Placeholder only, not a verified official record",
+        "url": "https://example.com/placeholders/troweprice"
+      },
+      "weight": 0
+    }
+  ],
+  "jev_scores": [
+    {
+      "flag": "guaranteed_returns",
+      "label": "Guaranteed returns",
+      "confidence": 0.03,
+      "evidence": "No matching claim in the sample text."
+    },
+    {
+      "flag": "urgency",
+      "label": "Urgency",
+      "confidence": 0.04,
+      "evidence": "No deadline in the sample text."
+    },
+    {
+      "flag": "whatsapp",
+      "label": "Move to WhatsApp",
+      "confidence": 0.02,
+      "evidence": "No messaging-app request in the sample text."
+    }
+  ],
+  "fraud_likelihood": 5,
+  "band": "low",
+  "band_reason": "The simulated website references match and the sample has no pressure language.",
+  "explanation": "This fixture represents an ordinary company post with matching website references. The record is a placeholder, not a live lookup, and the post URL is synthetic. The low demo score is not an assessment of any actual company, account, or post.",
+  "official_contact": {
+    "firm": "T. Rowe Price (demo placeholder)",
+    "crd": null,
+    "phone": null,
+    "website": "https://www.troweprice.com/",
+    "source": {
+      "title": "Placeholder only, not a verified official record",
+      "url": "https://example.com/placeholders/troweprice"
+    }
+  },
+  "stock_pros": [],
+  "stock_cons": [],
+  "stock_research_id": null
+}

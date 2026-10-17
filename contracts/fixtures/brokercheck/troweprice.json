@@ -1,0 +1,11 @@
+{
+  "firm": "T. Rowe Price (demo placeholder)",
+  "crd": null,
+  "phone": null,
+  "website": "https://www.troweprice.com/",
+  "source": {
+    "title": "Placeholder only, not a verified official record",
+    "url": "https://example.com/placeholders/troweprice"
+  },
+  "_todo": "TODO(B): replace this placeholder with a real cached BrokerCheck lookup; no real contact or registration has been verified."
+}

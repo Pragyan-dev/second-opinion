@@ -50,61 +50,61 @@
       "title": "AgentResult",
       "type": "object"
     },
-    "OfficialContact": {
+    "Article": {
       "properties": {
-        "firm": {
-          "title": "Firm",
+        "title": {
+          "title": "Title",
           "type": "string"
         },
-        "crd": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Crd"
+        "url": {
+          "title": "Url",
+          "type": "string"
         },
-        "phone": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Phone"
+        "outlet": {
+          "title": "Outlet",
+          "type": "string"
         },
-        "website": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Website"
+        "published": {
+          "title": "Published",
+          "type": "string"
         },
-        "source": {
-          "$ref": "#/$defs/Source"
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "relevance": {
+          "title": "Relevance",
+          "type": "number"
+        },
+        "is_press_release": {
+          "title": "Is Press Release",
+          "type": "boolean"
         }
       },
       "required": [
-        "firm",
-        "source"
+        "title",
+        "url",
+        "outlet",
+        "published",
+        "summary",
+        "relevance",
+        "is_press_release"
       ],
-      "title": "OfficialContact",
+      "title": "Article",
       "type": "object"
     },
-    "PageCapture": {
+    "Capture": {
       "properties": {
+        "source_type": {
+          "enum": [
+            "website",
+            "email",
+            "social_post",
+            "stock_page"
+          ],
+          "title": "Source Type",
+          "type": "string"
+        },
         "url": {
           "title": "Url",
           "type": "string"
@@ -116,6 +116,18 @@
         "text": {
           "title": "Text",
           "type": "string"
+        },
+        "sender": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender"
         },
         "links": {
           "default": [],
@@ -151,113 +163,15 @@
         }
       },
       "required": [
+        "source_type",
         "url",
         "title",
         "text"
       ],
-      "title": "PageCapture",
+      "title": "Capture",
       "type": "object"
     },
-    "PaymentCheck": {
-      "properties": {
-        "level": {
-          "enum": [
-            "ok",
-            "caution",
-            "stop"
-          ],
-          "title": "Level",
-          "type": "string"
-        },
-        "flags": {
-          "items": {
-            "$ref": "#/$defs/Signal"
-          },
-          "title": "Flags",
-          "type": "array"
-        },
-        "hold_recommended": {
-          "title": "Hold Recommended",
-          "type": "boolean"
-        },
-        "linked_report": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Linked Report"
-        },
-        "official_contact": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/OfficialContact"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "level",
-        "flags",
-        "hold_recommended"
-      ],
-      "title": "PaymentCheck",
-      "type": "object"
-    },
-    "PaymentRequest": {
-      "properties": {
-        "customer_id": {
-          "title": "Customer Id",
-          "type": "string"
-        },
-        "from_account_id": {
-          "title": "From Account Id",
-          "type": "string"
-        },
-        "payee_account_id": {
-          "title": "Payee Account Id",
-          "type": "string"
-        },
-        "payee_name": {
-          "title": "Payee Name",
-          "type": "string"
-        },
-        "amount": {
-          "title": "Amount",
-          "type": "number"
-        },
-        "report_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Report Id"
-        }
-      },
-      "required": [
-        "customer_id",
-        "from_account_id",
-        "payee_account_id",
-        "payee_name",
-        "amount"
-      ],
-      "title": "PaymentRequest",
-      "type": "object"
-    },
-    "Report": {
+    "FraudReport": {
       "properties": {
         "report_id": {
           "title": "Report Id",
@@ -271,6 +185,16 @@
             "error"
           ],
           "title": "Status",
+          "type": "string"
+        },
+        "source_type": {
+          "enum": [
+            "website",
+            "email",
+            "social_post",
+            "stock_page"
+          ],
+          "title": "Source Type",
           "type": "string"
         },
         "page_url": {
@@ -287,6 +211,17 @@
           "title": "Entities",
           "type": "object"
         },
+        "site_visit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SiteVisit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "signals": {
           "default": [],
           "items": {
@@ -294,6 +229,26 @@
           },
           "title": "Signals",
           "type": "array"
+        },
+        "jev_scores": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/JevScore"
+          },
+          "title": "Jev Scores",
+          "type": "array"
+        },
+        "fraud_likelihood": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fraud Likelihood"
         },
         "band": {
           "anyOf": [
@@ -347,15 +302,324 @@
             }
           ],
           "default": null
+        },
+        "stock_pros": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProCon"
+          },
+          "title": "Stock Pros",
+          "type": "array"
+        },
+        "stock_cons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProCon"
+          },
+          "title": "Stock Cons",
+          "type": "array"
+        },
+        "stock_research_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stock Research Id"
         }
       },
       "required": [
         "report_id",
         "status",
+        "source_type",
         "page_url",
         "entities"
       ],
-      "title": "Report",
+      "title": "FraudReport",
+      "type": "object"
+    },
+    "FundingRequest": {
+      "properties": {
+        "customer_id": {
+          "title": "Customer Id",
+          "type": "string"
+        },
+        "from_account_id": {
+          "title": "From Account Id",
+          "type": "string"
+        },
+        "to_account_id": {
+          "title": "To Account Id",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "human_confirmed": {
+          "title": "Human Confirmed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "customer_id",
+        "from_account_id",
+        "to_account_id",
+        "amount",
+        "human_confirmed"
+      ],
+      "title": "FundingRequest",
+      "type": "object"
+    },
+    "JevScore": {
+      "properties": {
+        "flag": {
+          "title": "Flag",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        }
+      },
+      "required": [
+        "flag",
+        "label",
+        "confidence",
+        "evidence"
+      ],
+      "title": "JevScore",
+      "type": "object"
+    },
+    "OfficialContact": {
+      "properties": {
+        "firm": {
+          "title": "Firm",
+          "type": "string"
+        },
+        "crd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crd"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phone"
+        },
+        "website": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Website"
+        },
+        "source": {
+          "$ref": "#/$defs/Source"
+        }
+      },
+      "required": [
+        "firm",
+        "source"
+      ],
+      "title": "OfficialContact",
+      "type": "object"
+    },
+    "OrderPreview": {
+      "properties": {
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "last_price": {
+          "title": "Last Price",
+          "type": "number"
+        },
+        "est_total": {
+          "title": "Est Total",
+          "type": "number"
+        },
+        "tradable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tradable"
+        },
+        "buying_power_ok": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Buying Power Ok"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "data_source": {
+          "enum": [
+            "robinhood_mcp",
+            "cached",
+            "simulated"
+          ],
+          "title": "Data Source",
+          "type": "string"
+        },
+        "status": {
+          "const": "awaiting_human",
+          "default": "awaiting_human",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "name",
+        "last_price",
+        "est_total",
+        "data_source"
+      ],
+      "title": "OrderPreview",
+      "type": "object"
+    },
+    "OrderTicket": {
+      "properties": {
+        "symbol": {
+          "title": "Symbol",
+          "type": "string"
+        },
+        "side": {
+          "const": "buy",
+          "default": "buy",
+          "title": "Side",
+          "type": "string"
+        },
+        "quantity": {
+          "title": "Quantity",
+          "type": "number"
+        },
+        "order_type": {
+          "enum": [
+            "market",
+            "limit"
+          ],
+          "title": "Order Type",
+          "type": "string"
+        },
+        "limit_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limit Price"
+        },
+        "time_in_force": {
+          "default": "gfd",
+          "enum": [
+            "gfd",
+            "gtc"
+          ],
+          "title": "Time In Force",
+          "type": "string"
+        },
+        "research_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Research Id"
+        }
+      },
+      "required": [
+        "symbol",
+        "quantity",
+        "order_type"
+      ],
+      "title": "OrderTicket",
+      "type": "object"
+    },
+    "ProCon": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Source"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "ProCon",
       "type": "object"
     },
     "Signal": {
@@ -408,6 +672,84 @@
       "title": "Signal",
       "type": "object"
     },
+    "SiteVisit": {
+      "properties": {
+        "start_url": {
+          "title": "Start Url",
+          "type": "string"
+        },
+        "final_url": {
+          "title": "Final Url",
+          "type": "string"
+        },
+        "pages_visited": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pages Visited",
+          "type": "array"
+        },
+        "claimed_firm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claimed Firm"
+        },
+        "claimed_crd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claimed Crd"
+        },
+        "phones": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Phones",
+          "type": "array"
+        },
+        "emails": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Emails",
+          "type": "array"
+        },
+        "domain_age_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain Age Days"
+        }
+      },
+      "required": [
+        "start_url",
+        "final_url",
+        "pages_visited"
+      ],
+      "title": "SiteVisit",
+      "type": "object"
+    },
     "Source": {
       "properties": {
         "title": {
@@ -426,10 +768,10 @@
       "title": "Source",
       "type": "object"
     },
-    "StockXray": {
+    "StockReport": {
       "properties": {
-        "xray_id": {
-          "title": "Xray Id",
+        "research_id": {
+          "title": "Research Id",
           "type": "string"
         },
         "symbol": {
@@ -474,6 +816,30 @@
           "default": null,
           "title": "Summary"
         },
+        "articles": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Article"
+          },
+          "title": "Articles",
+          "type": "array"
+        },
+        "pros": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProCon"
+          },
+          "title": "Pros",
+          "type": "array"
+        },
+        "cons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProCon"
+          },
+          "title": "Cons",
+          "type": "array"
+        },
         "questions": {
           "default": [],
           "items": {
@@ -484,13 +850,13 @@
         }
       },
       "required": [
-        "xray_id",
+        "research_id",
         "symbol",
         "asset_type",
         "status",
         "sections"
       ],
-      "title": "StockXray",
+      "title": "StockReport",
       "type": "object"
     }
   },
@@ -498,8 +864,8 @@
   "title": "SecondOpinionContracts",
   "type": "object",
   "properties": {
-    "PageCapture": {
-      "$ref": "#/$defs/PageCapture"
+    "Capture": {
+      "$ref": "#/$defs/Capture"
     },
     "Source": {
       "$ref": "#/$defs/Source"
@@ -507,23 +873,38 @@
     "Signal": {
       "$ref": "#/$defs/Signal"
     },
+    "JevScore": {
+      "$ref": "#/$defs/JevScore"
+    },
+    "SiteVisit": {
+      "$ref": "#/$defs/SiteVisit"
+    },
     "OfficialContact": {
       "$ref": "#/$defs/OfficialContact"
     },
-    "Report": {
-      "$ref": "#/$defs/Report"
+    "ProCon": {
+      "$ref": "#/$defs/ProCon"
+    },
+    "FraudReport": {
+      "$ref": "#/$defs/FraudReport"
     },
     "AgentResult": {
       "$ref": "#/$defs/AgentResult"
     },
-    "StockXray": {
-      "$ref": "#/$defs/StockXray"
+    "Article": {
+      "$ref": "#/$defs/Article"
     },
-    "PaymentRequest": {
-      "$ref": "#/$defs/PaymentRequest"
+    "StockReport": {
+      "$ref": "#/$defs/StockReport"
     },
-    "PaymentCheck": {
-      "$ref": "#/$defs/PaymentCheck"
+    "OrderTicket": {
+      "$ref": "#/$defs/OrderTicket"
+    },
+    "OrderPreview": {
+      "$ref": "#/$defs/OrderPreview"
+    },
+    "FundingRequest": {
+      "$ref": "#/$defs/FundingRequest"
     }
   }
 }

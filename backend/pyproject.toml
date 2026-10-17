@@ -27,6 +27,7 @@ select = ["E", "F", "I"]
 [tool.ruff.lint.per-file-ignores]
 "**/contracts.py" = ["I001"]
 "**/export_schema.py" = ["E402"]
+"**/demo_check.py" = ["E402"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]

@@ -1,17 +1,22 @@
-"""Owner D: offline persona preview; no external writes."""
+"""Offline funding persona stub. Owner D."""
 
 import json
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
-    # TODO(D): create the demo customer, accounts and transactions in Nessie.
-    # TODO(D): save returned IDs under contracts/fixtures/nessie/ for repeatable setup.
-    data = json.loads((ROOT / "contracts/fixtures/bank_summary_demo.json").read_text())
-    print("OFFLINE persona preview — no Nessie API calls")
-    print(json.dumps(data, indent=2))
+    # TODO(D): seed demo customer and account IDs in Nessie with idempotent setup.
+    # Future funding transfers must independently require explicit human confirmation.
+    print("OFFLINE persona preview. No Nessie API calls or transfers.")
+    print(
+        json.dumps(
+            {
+                "customer_id": "demo",
+                "from_account_id": "checking-demo",
+                "to_account_id": "investment-demo",
+            },
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
