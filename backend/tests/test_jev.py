@@ -116,7 +116,7 @@ async def test_jev_decisions_api(respx_mock, jev_live):
     request = route.calls[0].request
     assert request.headers["authorization"] == "Bearer or-key"
     body = json.loads(request.content)
-    assert body["model"] == "typesafe/jev-1.13"
+    assert body["model"] == "typesafe/jev-1.14"
     assert "Guaranteed monthly returns" in body["state"]
     assert set(body["questions"]) == set(jev.FLAGS)
     assert all(q["type"] == "noul" and q["instructions"] for q in body["questions"].values())

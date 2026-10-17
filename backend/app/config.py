@@ -30,7 +30,7 @@ class Settings:
         # Jev runs on OpenRouter's Decisions API, so the OpenRouter key works by default.
         self.jev_api_key = os.getenv("JEV_API_KEY", "") or self.openrouter_api_key
         self.jev_api_url = os.getenv("JEV_API_URL", "https://openrouter.ai/api/alpha/decisions")
-        self.jev_model = os.getenv("JEV_MODEL", "typesafe/jev-1.13")
+        self.jev_model = os.getenv("JEV_MODEL", "typesafe/jev-1.14")
         self.nessie_api_key = os.getenv("NESSIE_API_KEY", "")
         self.news_api_key = os.getenv("NEWS_API_KEY", "")
         self.robinhood_mcp_url = os.getenv("ROBINHOOD_MCP_URL", "")
