@@ -36,7 +36,9 @@ async def _fetch_income(symbol: str) -> dict:
             (hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1) * 100, 2
         )
         if pays_dividend and yield_ttm:
-            total_return_1y = round(price_return_1y + yield_ttm * 100, 2)
+            # yield_ttm stored as percent (e.g. 2.0 for 2%); price_return_1y also percent
+            yield_pct = round(yield_ttm * 100, 4)
+            total_return_1y = round(price_return_1y + yield_pct, 2)
 
     return {
         "pays_dividend": pays_dividend,
@@ -53,7 +55,8 @@ def _div_frequency(divs) -> str:
     if len(divs) < 2:
         return "unknown"
     # Compare last 12 months of payments
-    recent = divs.last("365D")
+    import pandas as pd
+    recent = divs[divs.index >= (pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1))]
     n = len(recent)
     if n >= 11:
         return "monthly"
