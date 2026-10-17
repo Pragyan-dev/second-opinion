@@ -27,6 +27,7 @@ async def test_json_schema_path(fake_llm):
     assert schema["additionalProperties"] is False
     assert schema["required"] == ["firms", "count"]
     assert "default" not in schema["properties"]["count"]
+    assert call["extra_body"] == {"provider": {"sort": "latency", "require_parameters": True}}
 
 
 async def test_json_object_fallback_when_schema_rejected(fake_llm):
