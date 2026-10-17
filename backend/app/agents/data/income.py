@@ -5,8 +5,9 @@ import os
 try:
     from app.contracts import AgentResult
 except ImportError:
+    from typing import Literal, Optional
+
     from pydantic import BaseModel
-    from typing import Optional, Literal
 
     class AgentResult(BaseModel):  # type: ignore[no-redef]
         agent: str
