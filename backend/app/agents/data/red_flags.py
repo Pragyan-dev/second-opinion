@@ -72,7 +72,8 @@ async def _get_sec_suspensions() -> set[str]:
 
 
 async def _get_otc_info(symbol: str) -> dict:
-    cached = _load_json_cache(_OTC_CACHE / f"{symbol}.json" if False else Path(str(_OTC_CACHE).replace(".json", f"_{symbol}.json")))
+    cache_path = _CACHE_DIR / f"otc_{symbol}.json"
+    cached = _load_json_cache(cache_path)
     if cached:
         return cached
     try:
@@ -83,8 +84,7 @@ async def _get_otc_info(symbol: str) -> dict:
             resp = await client.get(url, follow_redirects=True)
             if resp.status_code == 200:
                 data = resp.json()
-                path = _CACHE_DIR / f"otc_{symbol}.json"
-                _save_json_cache(path, data)
+                _save_json_cache(cache_path, data)
                 return data
     except Exception:
         pass
