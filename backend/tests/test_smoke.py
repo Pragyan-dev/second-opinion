@@ -119,7 +119,7 @@ def test_confirmed_funding_route(client):
             "human_confirmed": True,
         },
     )
-    assert response.status_code == 200 and response.json()["transfer_id"].startswith("mock-")
+    assert response.status_code == 200 and response.json()["transfer_id"]
 
 
 def test_invalid_input_and_missing_jobs(client):

@@ -1,5 +1,6 @@
 """Market data agent. Owner D."""
 
+import math
 import os
 
 try:
@@ -19,40 +20,46 @@ async def _fetch_market(symbol: str) -> dict:
     import yfinance as yf  # type: ignore
 
     tick = yf.Ticker(symbol)
-    info = tick.fast_info
+    spy = yf.Ticker("SPY")
+
     hist_30 = tick.history(period="1mo")
-    hist_spy = yf.Ticker("SPY").history(period="1mo")
+    hist_90 = tick.history(period="3mo")
+    hist_spy_30 = spy.history(period="1mo")
+    hist_1y = tick.history(period="1y")
 
+    info = tick.fast_info
     price = float(info.last_price)
-    volume = int(info.three_month_average_volume or 0)
-    recent_volume = int(hist_30["Volume"].iloc[-1]) if len(hist_30) else 0
 
-    # Volatility: dollars of typical 1-month swing per $1,000 invested
-    if len(hist_30) > 1:
-        monthly_std = float(hist_30["Close"].pct_change().dropna().std())
-        vol_per_1k = round(monthly_std * price / price * 1000, 2)  # fraction * 1000
-        vol_per_1k = round(monthly_std * 1000, 2)
-    else:
-        monthly_std = 0.0
-        vol_per_1k = 0.0
+    def vol_per_1000(hist):
+        if len(hist) < 2:
+            return 0.0
+        std = float(hist["Close"].pct_change().dropna().std())
+        # annualized monthly swing: daily std * sqrt(21) * 1000
+        return round(std * math.sqrt(21) * 1000, 2)
 
-    if len(hist_spy) > 1:
-        spy_std = float(hist_spy["Close"].pct_change().dropna().std())
-        spy_vol_per_1k = round(spy_std * 1000, 2)
-    else:
-        spy_std = 0.0
-        spy_vol_per_1k = 0.0
+    vol_30d = vol_per_1000(hist_30)
+    vol_90d = vol_per_1000(hist_90)
+    spy_vol = vol_per_1000(hist_spy_30)
+
+    # Max drawdown over 1y
+    max_dd_1y = 0.0
+    if len(hist_1y) >= 2:
+        roll_max = hist_1y["Close"].cummax()
+        dd = (hist_1y["Close"] - roll_max) / roll_max
+        max_dd_1y = round(float(dd.min()) * 100, 2)
 
     avg_vol_30 = int(hist_30["Volume"].mean()) if len(hist_30) else 0
+    recent_vol = int(hist_30["Volume"].iloc[-1]) if len(hist_30) else 0
+    volume_vs_30d = round(recent_vol / avg_vol_30, 2) if avg_vol_30 else None
 
     return {
-        "symbol": symbol,
         "price": price,
-        "volatility_per_1k": vol_per_1k,
-        "spy_volatility_per_1k": spy_vol_per_1k,
-        "volume": recent_volume,
-        "avg_volume_30d": avg_vol_30,
-        "volume_vs_avg": round(recent_volume / avg_vol_30, 2) if avg_vol_30 else None,
+        "vol_30d": vol_30d,
+        "vol_90d": vol_90d,
+        "move_per_1000_usd": vol_30d,
+        "spy_move_per_1000_usd": spy_vol,
+        "max_drawdown_1y": max_dd_1y,
+        "volume_vs_30d": volume_vs_30d,
     }
 
 
@@ -73,5 +80,5 @@ class MarketAgent:
 
         data = await run_cached(f"market_{symbol}", lambda: _fetch_market(symbol))
         error = data.pop("error", None)
-        status = "error" if error and "cached copy used" not in (error or "") else "done"
+        status = "error" if error and "cached copy" not in (error or "") else "done"
         return AgentResult(agent=self.name, status=status, data=data, error=error)
