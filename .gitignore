@@ -16,3 +16,5 @@ out/
 *.sqlite-*
 .DS_Store
 *.log
+*.md
+!README.md

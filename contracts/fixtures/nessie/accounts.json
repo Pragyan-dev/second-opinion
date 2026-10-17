@@ -1,0 +1,6 @@
+{
+  "customer_id": "SEED_PENDING",
+  "from_account_id": "SEED_PENDING",
+  "to_account_id": "SEED_PENDING",
+  "_note": "Run scripts/seed_nessie.py with NESSIE_API_KEY set to populate real IDs"
+}
