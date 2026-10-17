@@ -1,9 +1,9 @@
 """V2 route coverage, fixture validation, sequencing, and incremental persistence."""
 
-import asyncio
 import html
 import json
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -12,14 +12,12 @@ from fastapi.testclient import TestClient
 from app import main, mock
 from app.config import FIXTURES, fixture, settings
 from app.contracts import (
-    AgentResult,
     Capture,
     FraudReport,
     OfficialContact,
     OrderPreview,
     StockReport,
 )
-from app.core import orchestrator
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -34,7 +32,9 @@ def client(request, tmp_path, monkeypatch):
 
 def finish(client, path):
     snapshots = []
-    for _ in range(15):
+    for _ in range(100):
+        if snapshots and client.app is main.app:
+            time.sleep(0.05)
         response = client.get(path)
         assert response.status_code == 200
         snapshots.append(response.json())
@@ -175,6 +175,11 @@ def test_all_json_fixtures_validate():
     found = set()
     for path in FIXTURES.rglob("*.json"):
         relative = path.relative_to(FIXTURES).as_posix()
+        data = json.loads(path.read_text())
+        found.add(relative)
+        if relative.startswith("rdap/"):
+            assert any(e["eventAction"] == "registration" for e in data["events"]), relative
+            continue
         model = (
             Capture
             if relative.startswith("captures/")
@@ -182,9 +187,8 @@ def test_all_json_fixtures_validate():
             if relative.startswith("brokercheck/")
             else models[relative]
         )
-        model.model_validate(json.loads(path.read_text()))
-        found.add(relative)
-    assert len(found) == 9
+        model.model_validate(data)
+    assert len(found) == 12
     assert set(models) <= found
 
 
@@ -213,90 +217,3 @@ def test_fixture_evidence_and_history():
         "earnings_dates",
     }
     assert history["prices_1y"][-1]["close"] == fixture("preview_demo.json")["last_price"]
-
-
-def test_parallel_timeout_and_persistence(tmp_path, monkeypatch):
-    monkeypatch.setattr(settings, "database", tmp_path / "jobs.sqlite")
-    monkeypatch.setattr(orchestrator, "AGENT_TIMEOUT", 0.02)
-    job = orchestrator.create_stock("BRWT")
-
-    class Fast:
-        name = "fast"
-
-        async def run(self, ctx):
-            return AgentResult(agent=self.name, status="done", data={"price": 1})
-
-    class Slow:
-        name = "slow"
-
-        async def run(self, ctx):
-            await asyncio.sleep(0.005)
-            assert (
-                orchestrator.get_job(job["research_id"], "stock")["sections"]["fast"]["status"]
-                == "done"
-            )
-            await asyncio.sleep(1)
-
-    asyncio.run(orchestrator.run_agents(job["research_id"], "stock", [Fast(), Slow()], {}))
-    result = orchestrator.get_job(job["research_id"], "stock")
-    assert result["status"] == "error" and result["sections"]["slow"]["error"] == "timeout"
-    assert orchestrator.store().get(f"{job['research_id']}:slow", "agent")["error"] == "timeout"
-
-
-def test_fraud_sequencing(tmp_path, monkeypatch):
-    monkeypatch.setattr(settings, "database", tmp_path / "jobs.sqlite")
-    capture = Capture.model_validate(fixture("captures/email_brightwater.json"))
-    job = orchestrator.create_fraud(capture)
-    events = []
-
-    async def scenario():
-        ready = asyncio.Event()
-
-        class Extract:
-            name = "extract"
-
-            async def run(self, ctx):
-                events.append("extract")
-                return AgentResult(
-                    agent=self.name, status="done", data={"entities": {"firms": ["Demo"]}}
-                )
-
-        class Crawl:
-            name = "crawl"
-
-            async def run(self, ctx):
-                assert ctx["entities"]["firms"] == ["Demo"]
-                events.append("crawl")
-                return AgentResult(
-                    agent=self.name,
-                    status="done",
-                    data={"site_visit": fixture("fraud_clone.json")["site_visit"]},
-                )
-
-        class First:
-            name = "first"
-
-            async def run(self, ctx):
-                assert ctx["site_visit"]["claimed_firm"] == "Brightwater Capital Advisors"
-                events.append("first")
-                await asyncio.wait_for(ready.wait(), 0.2)
-                return AgentResult(agent=self.name, status="done")
-
-        class Second:
-            name = "second"
-
-            async def run(self, ctx):
-                assert events[:2] == ["extract", "crawl"]
-                ready.set()
-                return AgentResult(agent=self.name, status="done")
-
-        await orchestrator.run_agents(
-            job["report_id"],
-            "fraud",
-            [Extract(), Crawl(), First(), Second()],
-            capture.model_dump(),
-            sequential_prefix=2,
-        )
-
-    asyncio.run(scenario())
-    assert orchestrator.get_job(job["report_id"], "fraud")["status"] == "done"

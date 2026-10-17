@@ -1,0 +1,20 @@
+{
+  "objectClassName": "domain",
+  "handle": "PLACEHOLDER-TROWEPRICE",
+  "ldhName": "troweprice.com",
+  "status": [
+    "active"
+  ],
+  "events": [
+    {
+      "eventAction": "registration",
+      "eventDate": "1996-01-01T00:00:00Z"
+    },
+    {
+      "eventAction": "last changed",
+      "eventDate": "1996-01-01T00:00:00Z"
+    }
+  ],
+  "_fixture_as_of": "2026-10-17",
+  "_note": "Cached placeholder, not a verified lookup. TODO(B): replace with the live RDAP response from python -m app.fraud.probe."
+}

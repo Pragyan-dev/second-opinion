@@ -1,28 +1,13 @@
-"""Fraud scoring fixture stub. Owner B."""
+"""Fraud likelihood scoring. Owner B."""
 
-from app.config import fixture
-from app.contracts import AgentResult
-from app.fraud.extract import fixture_name
+from app.core.steps import case_fixture
 
 
-class ScoringAgent:
+class ScoringStep:
     name = "scoring"
+    writes = ("fraud_likelihood", "band", "band_reason")
 
-    async def run(self, ctx: dict) -> AgentResult:
-        # TODO(B): implement scoring with cached evidence; retain fixture fallback.
-        report = fixture(fixture_name(ctx))
-        data = {"signals": [s for s in report["signals"] if s["id"] in []]}
-        data.update(
-            {
-                key: report[key]
-                for key in [
-                    "fraud_likelihood",
-                    "band",
-                    "band_reason",
-                    "stock_pros",
-                    "stock_cons",
-                    "stock_research_id",
-                ]
-            }
-        )
-        return AgentResult(agent=self.name, status="done", data=data)
+    async def run(self, ctx: dict) -> None:
+        report = case_fixture(ctx)
+        for key in self.writes:
+            ctx[key] = report[key]

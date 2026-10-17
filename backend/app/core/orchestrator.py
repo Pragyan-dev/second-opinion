@@ -1,126 +1,189 @@
-"""Sequential capture discovery followed by parallel fixture agents. Owner B."""
+"""Job lifecycle and the fraud and stock pipelines. Owner B.
+
+Fraud runs as a dependency graph of stages over one shared ctx dict:
+extract -> crawl -> [brokercheck, rdap, jev] -> contact_match -> scoring -> explainer.
+Stock runs every STOCK_AGENTS entry in parallel, then the Explainer writes the summary.
+Every step's contribution is saved as soon as it finishes, so GET returns partial results.
+"""
 
 import asyncio
+import logging
 from uuid import uuid4
 
-from fastapi import HTTPException
-
-from app.agents import FRAUD_STEPS, STOCK_AGENTS
 from app.config import fixture, settings
 from app.contracts import AgentResult, Capture, FraudReport, StockReport
-from app.core.agent import Agent
-from app.core.store import JobStore
+from app.core import store
+from app.core.steps import dump, error_signal
+from app.fraud.extract import fixture_name
 
-AGENT_TIMEOUT = 8
-TERMINAL_FIELDS = {
-    "fraud_likelihood",
-    "band",
-    "band_reason",
-    "explanation",
-    "stock_pros",
-    "stock_cons",
-    "stock_research_id",
+log = logging.getLogger(__name__)
+
+LONG_TIMEOUTS = {"crawl": 15.0, "explainer": 15.0}
+DEMO_FRAUD = {
+    "demo": "fraud_clone.json",
+    "clone-demo": "fraud_clone.json",
+    "real-demo": "fraud_real.json",
 }
 
+# Strong references so running pipelines are not garbage collected.
+_tasks: set[asyncio.Task] = set()
+_by_id: dict[str, asyncio.Task] = {}
 
-def store():
-    return JobStore(settings.database)
+
+def timeout_for(name: str) -> float:
+    return LONG_TIMEOUTS.get(name, settings.agent_timeout_s)
 
 
-def create_fraud(capture: Capture):
-    job_id = uuid4().hex
-    payload = FraudReport(
-        report_id=job_id,
-        status="pending",
+def _spawn(job_id: str, coro) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    _tasks.add(task)
+    _by_id[job_id] = task
+
+    def forget(done: asyncio.Task):
+        _tasks.discard(done)
+        if _by_id.get(job_id) is done:
+            _by_id.pop(job_id, None)
+
+    task.add_done_callback(forget)
+    return task
+
+
+async def shutdown():
+    """Stop running pipelines and close the database (FastAPI lifespan exit)."""
+    for task in list(_tasks):
+        task.cancel()
+    await asyncio.gather(*_tasks, return_exceptions=True)
+    await store.close()
+
+
+# Fraud
+
+
+async def start_fraud_job(capture: Capture, stages=None) -> str:
+    report_id = uuid4().hex
+    report = FraudReport(
+        report_id=report_id,
+        status="running",
         source_type=capture.source_type,
         page_url=capture.url,
         entities={},
-    ).model_dump()
-    store().put(job_id, "fraud", payload)
-    return {"report_id": job_id, "status": "pending"}
+    )
+    await store.create_job(
+        report_id, "fraud", capture.model_dump(), dump(report), status="running"
+    )
+    _spawn(report_id, run_fraud(report_id, capture, stages))
+    return report_id
 
 
-def create_stock(symbol: str):
-    job_id = uuid4().hex
-    payload = StockReport(
-        research_id=job_id, symbol=symbol.upper(), asset_type="stock", status="pending", sections={}
-    ).model_dump()
-    store().put(job_id, "stock", payload)
-    return {"research_id": job_id, "status": "pending"}
+async def run_step(job_id: str, step, ctx: dict):
+    try:
+        await asyncio.wait_for(step.run(ctx), timeout_for(step.name))
+    except asyncio.TimeoutError:
+        ctx["errors"][step.name] = "timeout"
+        ctx["signals"].append(error_signal(step.name, "timed out"))
+    except Exception as exc:
+        log.exception("fraud step %s failed", step.name)
+        ctx["errors"][step.name] = str(exc) or type(exc).__name__
+        ctx["signals"].append(error_signal(step.name, type(exc).__name__))
+    partial = {key: dump(ctx[key]) for key in step.writes if key in ctx}
+    partial["signals"] = dump(ctx["signals"])
+    await store.update_result(job_id, partial)
 
 
-def get_job(job_id: str, kind: str):
-    if kind == "fraud" and job_id in {"demo", "clone-demo", "real-demo"}:
-        return fixture("fraud_real.json" if job_id == "real-demo" else "fraud_clone.json")
-    if kind == "stock" and job_id == "demo":
-        return fixture("stock_demo.json")
-    payload = store().get(job_id, kind)
-    if payload is None:
-        raise HTTPException(404, "Job not found")
-    return payload
+async def run_fraud(report_id: str, capture: Capture, stages=None):
+    if stages is None:
+        from app.agents import FRAUD_STAGES as stages
+    ctx = {
+        "report_id": report_id,
+        "capture": capture,
+        "case": fixture_name(capture.model_dump()),
+        "signals": [],
+        "errors": {},
+    }
+    try:
+        for stage in stages:
+            await asyncio.gather(*(run_step(report_id, step, ctx) for step in stage))
+        await store.set_status(report_id, "done")
+    except Exception:
+        log.exception("fraud pipeline crashed")
+        await store.set_status(report_id, "error")
 
 
-async def run_agents(
-    job_id: str, kind: str, agents: list[Agent], ctx: dict, sequential_prefix: int = 0
-):
-    jobs = store()
-    payload = jobs.get(job_id, kind)
-    payload["status"] = "running"
-    jobs.put(job_id, kind, payload)
-    results, final_fields = [], {}
+# Stock
 
-    async def run_one(agent):
+
+async def start_stock_job(symbol: str, source_url: str | None = None, agents=None) -> str:
+    research_id = uuid4().hex
+    report = StockReport(
+        research_id=research_id,
+        symbol=symbol.upper(),
+        asset_type="stock",
+        status="running",
+        sections={},
+    )
+    await store.create_job(
+        research_id,
+        "stock",
+        {"symbol": symbol.upper(), "source_url": source_url},
+        dump(report),
+        status="running",
+    )
+    _spawn(research_id, run_stock(research_id, symbol, source_url, agents))
+    return research_id
+
+
+async def run_stock(research_id: str, symbol: str, source_url: str | None = None, agents=None):
+    if agents is None:
+        from app.agents import STOCK_AGENTS as agents
+    ctx = {"research_id": research_id, "symbol": symbol.upper(), "source_url": source_url}
+    sections: dict[str, AgentResult] = {}
+
+    async def one(agent):
         try:
-            result = await asyncio.wait_for(agent.run(ctx), timeout=AGENT_TIMEOUT)
+            result = await asyncio.wait_for(agent.run(ctx), timeout_for(agent.name))
+            result = AgentResult.model_validate(dump(result))
         except asyncio.TimeoutError:
             result = AgentResult(agent=agent.name, status="error", error="timeout")
         except Exception as exc:
-            result = AgentResult(agent=agent.name, status="error", error=str(exc))
-        results.append(result)
-        jobs.put(f"{job_id}:{agent.name}", "agent", result.model_dump())
-        if kind == "stock":
-            payload["sections"][agent.name] = result.model_dump()
-        elif result.status == "done":
-            payload["signals"].extend(result.data.get("signals", []))
-            for key, value in result.data.items():
-                if key in TERMINAL_FIELDS:
-                    final_fields[key] = value
-                elif key in {"entities", "site_visit", "official_contact", "jev_scores"}:
-                    payload[key] = value
-                    ctx[key] = value
-        jobs.put(job_id, kind, payload)
-        return result
-
-    # Extraction populates entities before crawling; crawling populates site_visit
-    # before any remaining fraud step starts. Stock agents have no sequential prefix.
-    for agent in agents[:sequential_prefix]:
-        if (await run_one(agent)).status != "done":
-            break
-    else:
-        await asyncio.gather(*(run_one(agent) for agent in agents[sequential_prefix:]))
-    failed = any(result.status != "done" for result in results)
-    payload["status"] = "error" if failed else "done"
-    if kind == "fraud":
-        if failed:
-            payload.update(
-                band="cant_tell",
-                fraud_likelihood=None,
-                band_reason="One or more agents did not finish. Please retry.",
+            log.exception("stock agent %s failed", agent.name)
+            result = AgentResult(
+                agent=agent.name, status="error", error=str(exc) or type(exc).__name__
             )
-        else:
-            payload.update(final_fields)
-    elif not failed:
-        demo = fixture("stock_demo.json")
-        payload.update(
-            {key: demo[key] for key in ("summary", "articles", "pros", "cons", "questions")}
-        )
-        # TODO(B): aggregate stock sections into a sourced report instead of fixture metadata.
-    jobs.put(job_id, kind, payload)
+        sections[agent.name] = result
+        await store.update_result(research_id, {"sections": dump(sections)})
+
+    try:
+        await asyncio.gather(*(one(agent) for agent in agents))
+        ctx["sections"] = sections
+        from app.agents.llm.explainer import explain_stock
+
+        try:
+            summary = await asyncio.wait_for(explain_stock(ctx), timeout_for("explainer"))
+            await store.update_result(research_id, dump(summary))
+        except Exception:
+            log.exception("stock explainer failed")
+        await store.set_status(research_id, "done")
+    except Exception:
+        log.exception("stock pipeline crashed")
+        await store.set_status(research_id, "error")
 
 
-async def run_fraud(job_id: str, capture: Capture):
-    await run_agents(job_id, "fraud", FRAUD_STEPS, capture.model_dump(), sequential_prefix=2)
+# Reads
 
 
-async def run_stock(job_id: str, symbol: str, source_url: str | None = None):
-    await run_agents(job_id, "stock", STOCK_AGENTS, {"symbol": symbol, "source_url": source_url})
+async def get_report(job_id: str, kind: str) -> dict | None:
+    if kind == "fraud" and job_id in DEMO_FRAUD:
+        return fixture(DEMO_FRAUD[job_id])
+    if kind == "stock" and job_id == "demo":
+        return fixture("stock_demo.json")
+    job = await store.get_job(job_id, kind)
+    return job["result"] if job else None
+
+
+async def wait_for_job(job_id: str, timeout: float) -> dict | None:
+    """Wait up to `timeout` seconds for a job started in this process, then return its result."""
+    task = _by_id.get(job_id)
+    if task is not None and timeout > 0:
+        await asyncio.wait({task}, timeout=timeout)
+    job = await store.get_job(job_id)
+    return job["result"] if job else None
