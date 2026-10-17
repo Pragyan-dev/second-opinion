@@ -1,6 +1,6 @@
 PYTHON ?= python3.11
 VENV := .venv/bin
-.PHONY: setup dev mock web demo test types demo-check
+.PHONY: setup dev mock web demo reef test types demo-check
 
 setup:
 	$(PYTHON) -m venv .venv
@@ -18,6 +18,9 @@ web:
 
 demo:
 	cd demo-site && ../$(VENV)/python -m http.server 5500 --bind 127.0.0.1
+
+reef:
+	$(VENV)/python reef/server.py
 
 test:
 	$(VENV)/pytest backend/tests

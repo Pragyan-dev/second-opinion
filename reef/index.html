@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reef Academy</title>
+  <meta name="description" content="Learn diversification, fees and market crashes by keeping a coral reef of ETFs alive through real historical storms.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 26c6-6 10 6 16 0s10 6 16 0" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><path d="M20 22V8m0 6-5-4m5 8 5-5" fill="none" stroke="#ff7eb6" stroke-width="3" stroke-linecap="round"/></svg>
+      <div><h1>Reef Academy</h1><p>Keep your ETF reef alive through real market storms</p></div>
+    </div>
+    <div class="level" title="Earn XP by weathering storms">
+      <span class="level-title" id="levelTitle">Tide-Pool Tourist</span>
+      <div class="xpbar"><i id="xpFill"></i></div>
+      <span class="xp-text" id="xpText">0 XP</span>
+    </div>
+    <button class="chip" id="badgesBtn" type="button">🏅 <span id="badgeCount">0</span> badges</button>
+  </header>
+
+  <main class="layout">
+    <aside class="panel nursery">
+      <div class="panel-head">
+        <h2>Species Nursery</h2>
+        <button class="link" id="clearBtn" type="button">Clear reef</button>
+      </div>
+      <p class="hint">Every ETF is a species. Plant them in 10% polyps until the seabed is full. Species in the same asset class move together, so variety beats volume.</p>
+      <div class="presets" id="presets"></div>
+      <div class="catalog" id="catalog"></div>
+    </aside>
+
+    <section class="stage">
+      <div class="hud">
+        <div class="meter">
+          <span class="meter-label">Reef value</span>
+          <b class="meter-value" id="valueText">$10,000</b>
+          <span class="meter-sub" id="valueSub">Starting colony</span>
+        </div>
+        <div class="meter">
+          <span class="meter-label">Biodiversity</span>
+          <div class="gauge"><i id="bioFill"></i></div>
+          <span class="meter-sub"><b id="bioText">0</b> · <span id="bioLabel">Monoculture</span></span>
+        </div>
+        <div class="meter">
+          <span class="meter-label">Water clarity</span>
+          <div class="gauge murk"><i id="feeFill"></i></div>
+          <span class="meter-sub"><b id="feeText">0.00%</b> fees · <span id="feeLabel">Crystal clear</span></span>
+        </div>
+        <div class="meter">
+          <span class="meter-label">Seabed planted</span>
+          <b class="meter-value" id="plantedText">0%</b>
+          <span class="meter-sub" id="plantedSub">Plant 100% to face a storm</span>
+        </div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="reef" aria-label="Animated coral reef showing your portfolio"></canvas>
+        <div class="tooltip" id="tooltip" hidden></div>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+      <div class="allocbar" id="allocbar" aria-label="Allocation by asset class"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="panel side">
+      <div class="biologist" id="biologist">
+        <div class="bio-head">
+          <svg class="octo" id="octo" viewBox="0 0 100 100" aria-hidden="true">
+            <g class="tentacles" fill="#8b5cf6">
+              <path d="M24 58c-10 10-14 22-6 30 4-8 8-16 14-22z"/>
+              <path d="M36 64c-4 12-2 24 6 28 0-10 2-18 4-26z"/>
+              <path d="M54 66c2 10 0 20 6 26 6-6 4-18-2-28z"/>
+              <path d="M68 60c8 8 16 18 12 28-6-6-10-14-18-22z"/>
+            </g>
+            <ellipse cx="50" cy="42" rx="31" ry="29" fill="#a78bfa"/>
+            <ellipse cx="42" cy="24" rx="10" ry="6" fill="#c4b5fd" opacity=".7"/>
+            <path d="M27 66c8 6 38 6 46 0l-4 10H31z" fill="#f8fafc"/>
+            <circle cx="38" cy="44" r="9.5" fill="rgba(255,255,255,.4)" stroke="#1e1b4b" stroke-width="2.5"/>
+            <circle cx="62" cy="44" r="9.5" fill="rgba(255,255,255,.4)" stroke="#1e1b4b" stroke-width="2.5"/>
+            <path d="M47.5 44h5" stroke="#1e1b4b" stroke-width="2.5"/>
+            <circle class="pupil" cx="39" cy="45" r="3.4" fill="#1e1b4b"/>
+            <circle class="pupil" cx="63" cy="45" r="3.4" fill="#1e1b4b"/>
+            <path class="mouth" d="M43 58q7 6 14 0" fill="none" stroke="#1e1b4b" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="28" cy="54" r="4" fill="#f9a8d4" opacity=".7"/>
+            <circle cx="72" cy="54" r="4" fill="#f9a8d4" opacity=".7"/>
+          </svg>
+          <div>
+            <h2>Dr. Octavia Inkwell</h2>
+            <p class="role">Marine biologist <span class="src" id="bioSrc">field notes</span></p>
+          </div>
+        </div>
+        <div class="bubble" id="bubble" aria-live="polite">Welcome to the reef! I planted a Tech-Bro Lagoon to get you started: three tech ETFs, all glowing. Looks healthy, right? Send the 2008 storm at it and see, or replant it from the nursery first.</div>
+        <form class="ask" id="askForm">
+          <input id="askInput" maxlength="240" placeholder="Ask Dr. Inkwell about your reef…" autocomplete="off">
+          <button class="btn small" type="submit">Ask</button>
+        </form>
+      </div>
+
+      <div class="panel-head"><h2>Storm Chamber</h2><span class="hint-inline">Real market events</span></div>
+      <div class="storms" id="storms"></div>
+
+      <div class="card gauntlet" id="gauntletCard">
+        <div class="card-top"><span class="pill danger">BOSS</span><span class="stars" id="gauntletBest"></span></div>
+        <h3>The Gauntlet: 2008 → 2020 → 2022</h3>
+        <p>All three storms back to back, with fees taken every year. Unlocks after you face each storm once.</p>
+        <button class="btn danger" id="gauntletBtn" type="button" disabled>🔒 Locked</button>
+      </div>
+
+      <div class="card feelab">
+        <div class="card-top"><span class="pill murky">FEE LAB</span></div>
+        <h3>Fast-forward 30 calm years</h3>
+        <p>No storms, just 7% a year of growth. Watch fees silt up the water next to a zero-fee twin reef.</p>
+        <button class="btn murky" id="feeBtn" type="button">⏩ Time-lapse</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    For learning only, not investment advice. Returns are rounded, approximate historical total returns, and some early funds use index proxies. Past storms do not predict future ones.
+  </footer>
+
+  <dialog id="decision" class="modal">
+    <div class="modal-body">
+      <p class="eyebrow">The storm has passed… for now</p>
+      <h2 id="decTitle">Your reef lost 37%</h2>
+      <p id="decText"></p>
+      <div class="ticker" id="decTicker"></div>
+      <div class="choices">
+        <button class="choice hold" id="holdBtn" type="button"><span>🪸</span><b>Ride the current</b><small>Stay invested and let the reef regrow</small></button>
+        <button class="choice bail" id="bailBtn" type="button"><span>🏃</span><b>Abandon the reef</b><small>Sell everything and sit in cash</small></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="results" class="modal wide">
+    <div class="modal-body" id="resultsBody"></div>
+  </dialog>
+
+  <dialog id="badgesDlg" class="modal">
+    <div class="modal-body">
+      <div class="modal-head"><h2>Badge collection</h2><button class="x" type="button" data-close>✕</button></div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+  </dialog>
+
+  <div class="toasts" id="toasts" popover="manual" aria-live="polite"></div>
+</body>
+</html>

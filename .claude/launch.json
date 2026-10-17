@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "reef",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["reef/server.py"],
+      "port": 5600
+    }
+  ]
+}
