@@ -1,13 +1,14 @@
 /* ---------- hero ---------- */
 .hero { display: grid; gap: 24px; grid-template-columns: 1fr; align-items: start; }
 @media (min-width: 1024px) { .hero { grid-template-columns: auto 1fr; gap: 56px; } }
-.heroTop { display: grid; gap: 12px; margin-bottom: 28px; }
+.heroTop { display: grid; gap: 12px; margin-bottom: 32px; }
+.heroTop h1 { max-width: 20ch; letter-spacing: -.01em; }
 .pageLink { font-size: var(--s0); }
 
 .statement { display: grid; gap: 14px; align-content: start; }
 .bandWord { display: flex; align-items: center; gap: 12px; font-family: var(--font-display); font-variation-settings: "opsz" 96; font-size: var(--s5); font-weight: 600; line-height: 1; }
 .bandWord .check { width: 34px; height: 34px; font-size: 20px; }
-.reason { font-size: var(--s2); line-height: 1.35; max-width: 40ch; }
+.reason { font-size: var(--s2); line-height: 1.35; max-width: 40ch; font-family: var(--font-display); font-variation-settings: "opsz" 40; font-style: italic; }
 .footnote { font-size: var(--s-1); color: var(--ink-soft); max-width: 62ch; }
 
 /* ---------- Jev chart ---------- */
@@ -35,7 +36,9 @@
 @media (max-width: 639px) { .tip { display: none; } }
 
 /* ---------- comparison sheet ---------- */
-.sheet { background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 3px 3px 0 -1px var(--paper-raised), 3px 3px 0 0 var(--ink); padding: 20px; margin: 0 3px 3px 0; }
+.sheet { background: var(--paper-raised); border: 1px solid var(--ink); box-shadow: 4px 4px 0 -1px var(--paper-raised), 4px 4px 0 0 var(--ink), 0 22px 40px -28px rgba(12, 33, 30, .45); padding: 24px 24px 18px; margin: 0 4px 4px 0; position: relative;
+  background-image: repeating-linear-gradient(0deg, transparent 0 31px, rgba(143, 176, 166, .14) 31px 32px); }
+@media (min-width: 640px) { .sheet { padding: 28px 32px 20px; } }
 .sheetHead { margin-bottom: 14px; font-size: var(--s3); font-family: var(--font-display); font-weight: 600; max-width: 30ch; line-height: 1.15; }
 .cmpRow { display: grid; gap: 4px 16px; grid-template-columns: 1fr; padding: 12px 0; border-top: 1px solid var(--engrave); }
 @media (min-width: 640px) { .cmpRow { grid-template-columns: 110px 1fr 1fr 150px; align-items: baseline; } }
@@ -52,7 +55,7 @@
 /* ---------- ledger ---------- */
 .ledgerCount { margin-bottom: 12px; color: var(--ink-soft); }
 .ledgerHead { margin: 20px 0 4px; font-size: var(--s1); font-weight: 600; }
-.ledgerRow { display: grid; grid-template-columns: 24px 1fr; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--engrave); }
+.ledgerRow { display: grid; grid-template-columns: 24px 1fr; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
 .ledgerLabel { font-weight: 600; }
 
 /* ---------- link trail + entities ---------- */
@@ -63,7 +66,8 @@
 .entRow { padding: 10px 0; border-top: 1px solid var(--engrave); }
 .entRow h3 { font-size: var(--s0); color: var(--ink-soft); font-weight: 600; margin-bottom: 4px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--ink); border-radius: 2px; font-size: var(--s0); background: var(--paper-raised); word-break: break-all; }
-a.chip { color: var(--uv); border-color: var(--uv); text-decoration: none; min-height: 44px; }
+.chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--ink); border-radius: 2px; font-size: var(--s0); background: var(--paper-raised); word-break: break-all; box-shadow: 2px 2px 0 -1px var(--paper-raised), 2px 2px 0 0 var(--rule); }
+a.chip { color: var(--ink); border-color: var(--ink); text-decoration: none; min-height: 44px; font-weight: 600; letter-spacing: .04em; transition: background 120ms, color 120ms; }
+a.chip:hover { background: var(--ink); color: var(--paper-raised); }
 
 .stockLinkRow { margin-top: 20px; }
