@@ -32,23 +32,30 @@ async def _fetch_market(symbol: str) -> dict:
     info = tick.fast_info
     price = float(info.last_price)
 
-    def vol_per_1000(hist):
-        if len(hist) < 2:
-            return 0.0
-        std = float(hist["Close"].pct_change().dropna().std())
-        # annualized monthly swing: daily std * sqrt(21) * 1000
-        return round(std * math.sqrt(21) * 1000, 2)
+    if len(hist_30) < 2:
+        raise ValueError(f"no price data for {symbol}")
 
-    vol_30d = vol_per_1000(hist_30)
-    vol_90d = vol_per_1000(hist_90)
-    spy_vol = vol_per_1000(hist_spy_30)
+    def daily_std(hist):
+        if len(hist) < 2:
+            return None
+        return float(hist["Close"].pct_change().dropna().std())
+
+    def annualized(std):
+        # Fraction, like the fixtures: 0.25 means 25% a year.
+        return None if std is None else round(std * math.sqrt(252), 4)
+
+    def per_1000(std):
+        # Dollars a $1,000 position moves on a typical day.
+        return None if std is None else round(std * 1000, 2)
+
+    std_30, std_90, spy_std = daily_std(hist_30), daily_std(hist_90), daily_std(hist_spy_30)
 
     # Max drawdown over 1y
     max_dd_1y = 0.0
     if len(hist_1y) >= 2:
         roll_max = hist_1y["Close"].cummax()
         dd = (hist_1y["Close"] - roll_max) / roll_max
-        max_dd_1y = round(float(dd.min()) * 100, 2)
+        max_dd_1y = round(float(dd.min()), 4)
 
     avg_vol_30 = int(hist_30["Volume"].mean()) if len(hist_30) else 0
     recent_vol = int(hist_30["Volume"].iloc[-1]) if len(hist_30) else 0
@@ -56,11 +63,10 @@ async def _fetch_market(symbol: str) -> dict:
 
     return {
         "price": price,
-        "vol_30d": vol_30d,
-        "vol_90d": vol_90d,
-        # Dashboard contract requires both keys. This aliases the 30-day move on purpose.
-        "move_per_1000_usd": vol_30d,
-        "spy_move_per_1000_usd": spy_vol,
+        "vol_30d": annualized(std_30),
+        "vol_90d": annualized(std_90),
+        "move_per_1000_usd": per_1000(std_30),
+        "spy_move_per_1000_usd": per_1000(spy_std),
         "max_drawdown_1y": max_dd_1y,
         "volume_vs_30d": volume_vs_30d,
     }

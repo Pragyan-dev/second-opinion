@@ -23,6 +23,9 @@ async def _fetch_history(symbol: str) -> dict:
     hist_1y = tick.history(period="1y")
     hist_5y = tick.history(period="5y")
 
+    if len(hist_1y) < 2:
+        raise ValueError(f"no price history for {symbol}")
+
     def to_series(df):
         return [
             {"date": str(d.date()), "close": round(float(c), 4)}
@@ -32,21 +35,21 @@ async def _fetch_history(symbol: str) -> dict:
     prices_1y = to_series(hist_1y)
     prices_5y = to_series(hist_5y.iloc[::5])  # thin to every 5th day
 
-    high_52w = float(hist_1y["Close"].max()) if len(hist_1y) else 0.0
-    low_52w = float(hist_1y["Close"].min()) if len(hist_1y) else 0.0
+    high_52w = float(hist_1y["Close"].max())
+    low_52w = float(hist_1y["Close"].min())
 
     return_1y = None
     return_5y = None
     if len(hist_1y) >= 2:
-        return_1y = round((hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1) * 100, 2)
+        return_1y = round(float(hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1), 4)
     if len(hist_5y) >= 2:
-        return_5y = round((hist_5y["Close"].iloc[-1] / hist_5y["Close"].iloc[0] - 1) * 100, 2)
+        return_5y = round(float(hist_5y["Close"].iloc[-1] / hist_5y["Close"].iloc[0] - 1), 4)
 
     max_drawdown_1y = None
     if len(hist_1y) >= 2:
         roll_max = hist_1y["Close"].cummax()
         dd = (hist_1y["Close"] - roll_max) / roll_max
-        max_drawdown_1y = round(float(dd.min()) * 100, 2)
+        max_drawdown_1y = round(float(dd.min()), 4)
 
     try:
         cal = tick.calendar

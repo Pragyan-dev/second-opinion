@@ -24,32 +24,41 @@ async def _fetch_income(symbol: str) -> dict:
     hist_1y = tick.history(period="1y")
     divs = tick.dividends
 
+    if len(hist_1y) < 2:
+        raise ValueError(f"no price history for {symbol}")
+
     pays_dividend = bool(info.get("dividendRate") or (len(divs) > 0))
-    yield_ttm = float(info.get("dividendYield") or 0.0)
+    yield_ttm = _yield_ttm(divs, float(hist_1y["Close"].iloc[-1]))
     frequency = _div_frequency(divs)
     last_ex_date = _last_ex_date(info)
     years_uninterrupted = _years_uninterrupted(divs)
 
-    price_return_1y = None
-    total_return_1y = None
-    if len(hist_1y) >= 2:
-        price_return_1y = round(
-            (hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1) * 100, 2
-        )
-        if pays_dividend and yield_ttm:
-            # yield_ttm stored as percent (e.g. 2.0 for 2%); price_return_1y also percent
-            yield_pct = round(yield_ttm * 100, 4)
-            total_return_1y = round(price_return_1y + yield_pct, 2)
+    # Fractions, like the fixtures: 0.05 means 5%.
+    price_return_1y = round(float(hist_1y["Close"].iloc[-1] / hist_1y["Close"].iloc[0] - 1), 4)
+    total_return_1y = round(price_return_1y + (yield_ttm or 0.0), 4)
 
     return {
         "pays_dividend": pays_dividend,
-        "yield_ttm": round(yield_ttm * 100, 4) if yield_ttm else 0.0,
+        "yield_ttm": yield_ttm,
         "frequency": frequency,
         "last_ex_date": last_ex_date,
         "years_uninterrupted": years_uninterrupted,
         "price_return_1y": price_return_1y,
         "total_return_1y": total_return_1y,
     }
+
+
+def _yield_ttm(divs, price: float) -> float | None:
+    """Dividends paid in the last 12 months over the latest price, as a fraction.
+
+    Computed from the payments themselves because yfinance's dividendYield field
+    changed from a fraction to a percent between versions.
+    """
+    if len(divs) == 0 or not price:
+        return None
+    import pandas as pd
+    recent = divs[divs.index >= (pd.Timestamp.now(tz=divs.index.tz) - pd.DateOffset(years=1))]
+    return round(float(recent.sum()) / price, 4) if len(recent) else None
 
 
 def _div_frequency(divs) -> str:
@@ -83,7 +92,7 @@ def _years_uninterrupted(divs) -> int | None:
     import pandas as pd
     years = 0
     now = pd.Timestamp.now(tz=divs.index.tz)
-    for y in range(0, 40):
+    for y in range(0, 100):
         start = now - pd.DateOffset(years=y + 1)
         end = now - pd.DateOffset(years=y)
         if len(divs[(divs.index >= start) & (divs.index < end)]) == 0:
