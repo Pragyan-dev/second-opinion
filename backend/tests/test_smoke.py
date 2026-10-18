@@ -25,7 +25,6 @@ from app.contracts import (
 from app.core import orchestrator
 from app.purchase.nessie import fund
 from app.purchase.preview import preview
-from app.purchase.robinhood_mcp import RobinhoodClient, RobinhoodUnavailable
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -99,120 +98,24 @@ def test_stock_routes(client):
         assert all(not x["articles"] for x in snapshots[:-1])
 
 
-def test_preview_est_total_when_portfolio_fails(monkeypatch):
-    async def call_tool(self, name, arguments):
-        if name == "get_equity_quotes":
-            return {"last_trade_price": "10", "simple_name": "Brightwater"}
-        if name == "get_equity_tradability":
-            return {"is_tradable": True}
-        raise RuntimeError("portfolio unavailable")
+def test_preview_uses_mock_quotes():
+    apple = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=2, order_type="market")))
+    assert apple.name == "Apple"
+    assert apple.last_price == 227.50
+    assert apple.est_total == 455.0
+    assert apple.data_source == "simulated"
+    assert apple.tradable is True
 
-    monkeypatch.setattr(RobinhoodClient, "call_tool", call_tool)
-    result = asyncio.run(preview(OrderTicket(symbol="BRWT", quantity=2, order_type="market")))
-    assert result.est_total == 20
-    assert result.data_source == "robinhood_mcp"
-    assert result.buying_power_ok is None
+    meep = asyncio.run(preview(OrderTicket(symbol="MEEP", quantity=10, order_type="market")))
+    assert meep.name == "Meep Meep Mining Co"
+    assert meep.est_total == 4.2
 
+    pickles = asyncio.run(preview(OrderTicket(symbol="QXZQ", quantity=1, order_type="market")))
+    assert pickles.tradable is False
 
-def test_preview_fixture_name_follows_requested_symbol():
-    result = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=1, order_type="market")))
-    assert result.symbol == "AAPL"
-    assert result.name == "AAPL simulated stock review"
-    assert result.data_source == "simulated"
-    same = asyncio.run(preview(OrderTicket(symbol="BRWT", quantity=1, order_type="market")))
-    assert same.name == "BRWT fictional demonstration stock"
-
-
-def test_preview_uses_cached_quote_when_yfinance_fails(monkeypatch):
-    async def unavailable(self, name, arguments):
-        raise RobinhoodUnavailable("offline")
-
-    async def cached_quote(key, fetch):
-        return {
-            "last_price": 12.5,
-            "name": "AAPL",
-            "error": "cached copy used (live fetch failed: down)",
-        }
-
-    monkeypatch.setattr(settings, "use_fixtures", False)
-    monkeypatch.setattr(RobinhoodClient, "call_tool", unavailable)
-    monkeypatch.setattr("app.agents.data._common.run_cached", cached_quote)
-    result = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=2, order_type="market")))
-    assert result.data_source == "cached"
-    assert result.est_total == 25
-    assert result.last_price == 12.5
-
-
-def test_preview_falls_back_to_simulated_yfinance(monkeypatch):
-    async def unavailable(self, name, arguments):
-        raise RobinhoodUnavailable("down")
-
-    async def live_quote(key, fetch):
-        return {"last_price": 3.0, "name": "AAPL"}
-
-    monkeypatch.setattr(settings, "use_fixtures", False)
-    monkeypatch.setattr(RobinhoodClient, "call_tool", unavailable)
-    monkeypatch.setattr("app.agents.data._common.run_cached", live_quote)
-    result = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=2, order_type="market")))
-    assert result.data_source == "simulated"
-    assert result.last_price == 3.0
-    assert result.est_total == 6
-
-
-def test_preview_with_mocked_robinhood_http(monkeypatch):
-    class Response:
-        def __init__(self, payload, status=200):
-            self.status_code = status
-            self.headers = {}
-            self.content = b"" if payload is None else b"{}"
-            self._payload = payload
-
-        def json(self):
-            return self._payload
-
-    class Client:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *args):
-            return None
-
-        async def post(self, url, json, headers):
-            assert headers["Authorization"] == "Bearer test-token"
-            method = json["method"]
-            if method == "initialize":
-                return Response({"jsonrpc": "2.0", "id": json["id"], "result": {}})
-            if method == "notifications/initialized":
-                return Response(None, status=202)
-            name = json["params"]["name"]
-            if name == "get_equity_quotes":
-                assert json["params"]["arguments"] == {"symbols": ["AAPL"]}
-                data = {"results": [{"quote": {"last_trade_price": "4", "symbol": "AAPL"}}]}
-            elif name == "get_equity_tradability":
-                data = {"results": [{"tradeable": True}]}
-            else:
-                assert name == "get_portfolio"
-                data = {"buying_power": {"buying_power": "100"}}
-            return Response(
-                {
-                    "jsonrpc": "2.0",
-                    "id": json["id"],
-                    "result": {"structuredContent": {"data": data}},
-                }
-            )
-
-    monkeypatch.setattr(settings, "robinhood_mcp_url", "https://agent.robinhood.com/mcp/trading")
-    monkeypatch.setattr(settings, "robinhood_mcp_token", "test-token")
-    monkeypatch.setattr("app.purchase.robinhood_mcp.httpx.AsyncClient", Client)
-    result = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=2, order_type="market")))
-    assert result.data_source == "robinhood_mcp"
-    assert result.last_price == 4
-    assert result.est_total == 8
-    assert result.tradable is True
-    assert result.buying_power_ok is True
+    unknown = asyncio.run(preview(OrderTicket(symbol="ZZZZ", quantity=1, order_type="market")))
+    assert unknown.last_price == 10.0
+    assert unknown.name == "ZZZZ simulated stock review"
 
 
 @pytest.mark.parametrize(

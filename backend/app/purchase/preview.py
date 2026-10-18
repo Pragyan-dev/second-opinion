@@ -4,50 +4,35 @@ import math
 
 from fastapi import HTTPException
 
-from app.config import fixture, settings
 from app.contracts import OrderPreview, OrderTicket
-from app.purchase.robinhood_mcp import RobinhoodClient, RobinhoodUnavailable
 
-
-async def _fetch_yfinance_quote(ticket: OrderTicket) -> dict:
-    import yfinance as yf  # type: ignore
-
-    info = yf.Ticker(ticket.symbol).fast_info
-    return {"last_price": float(info.last_price), "name": ticket.symbol.upper()}
-
-
-async def _yfinance_preview(ticket: OrderTicket) -> OrderPreview:
-    """Simulated preview built from yfinance data. No Robinhood call."""
-    from app.agents.data._common import run_cached
-
-    data = await run_cached(
-        f"preview_{ticket.symbol.upper()}", lambda: _fetch_yfinance_quote(ticket)
-    )
-    error = str(data.get("error") or "")
-    if "last_price" not in data:
-        price = ticket.limit_price or 0.0
-        name = ticket.symbol.upper()
-        source = "simulated"
-    else:
-        price = float(data["last_price"])
-        name = str(data.get("name") or ticket.symbol.upper())
-        source = "cached" if "cached copy" in error else "simulated"
-
-    estimate_price = ticket.limit_price if ticket.order_type == "limit" else price
-    return OrderPreview(
-        symbol=ticket.symbol.upper(),
-        name=name,
-        last_price=price,
-        est_total=round(ticket.quantity * estimate_price, 2),
-        tradable=None,
-        buying_power_ok=None,
-        warnings=[
-            "Simulated quote — Robinhood MCP unavailable.",
-            "Any funding requires your explicit confirmation. No order has been placed.",
-        ],
-        data_source=source,
-        status="awaiting_human",
-    )
+MOCK_QUOTES = {
+    "AAPL": {"name": "Apple", "last_price": 227.50, "tradable": True},
+    "MSFT": {"name": "Microsoft", "last_price": 418.20, "tradable": True},
+    "GOOGL": {"name": "Alphabet", "last_price": 172.40, "tradable": True},
+    "AMZN": {"name": "Amazon", "last_price": 198.15, "tradable": True},
+    "NVDA": {"name": "NVIDIA", "last_price": 131.80, "tradable": True},
+    "META": {"name": "Meta", "last_price": 582.30, "tradable": True},
+    "TSLA": {"name": "Tesla", "last_price": 248.60, "tradable": True},
+    "JPM": {"name": "JPMorgan Chase", "last_price": 224.10, "tradable": True},
+    "V": {"name": "Visa", "last_price": 312.75, "tradable": True},
+    "JNJ": {"name": "Johnson & Johnson", "last_price": 163.40, "tradable": True},
+    "WMT": {"name": "Walmart", "last_price": 81.25, "tradable": True},
+    "PG": {"name": "Procter & Gamble", "last_price": 168.90, "tradable": True},
+    "XOM": {"name": "Exxon Mobil", "last_price": 118.55, "tradable": True},
+    "UNH": {"name": "UnitedHealth", "last_price": 542.00, "tradable": True},
+    "HD": {"name": "Home Depot", "last_price": 396.40, "tradable": True},
+    "BAC": {"name": "Bank of America", "last_price": 42.15, "tradable": True},
+    "KO": {"name": "Coca-Cola", "last_price": 68.30, "tradable": True},
+    "DIS": {"name": "Disney", "last_price": 96.70, "tradable": True},
+    "NFLX": {"name": "Netflix", "last_price": 715.25, "tradable": True},
+    "BRWT": {"name": "BRWT fictional demonstration stock", "last_price": 0.84, "tradable": False},
+    "ZORB": {"name": "Zorblat Noodle Works", "last_price": 3.14, "tradable": True},
+    "MEEP": {"name": "Meep Meep Mining Co", "last_price": 0.42, "tradable": True},
+    "BLUB": {"name": "Blubbersoft Cloud Fish", "last_price": 88.88, "tradable": True},
+    "QXZQ": {"name": "Quixquiz Quantum Pickles", "last_price": 12.07, "tradable": False},
+    "SNRK": {"name": "Snorkel Hat Industries", "last_price": 6.66, "tradable": True},
+}
 
 
 async def preview(ticket: OrderTicket) -> OrderPreview:
@@ -60,70 +45,24 @@ async def preview(ticket: OrderTicket) -> OrderPreview:
     ):
         raise HTTPException(422, "A limit order review requires a positive limit price")
 
-    # Try Robinhood MCP; fall back to yfinance if unavailable
-    rh = RobinhoodClient()
-    tradable = None
-    buying_power_ok = None
-    warnings: list[str] = []
-    data_source = "simulated"
-
-    try:
-        quote_result = await rh.call_tool("get_equity_quotes", {"symbol": ticket.symbol})
-        price = float(quote_result.get("last_trade_price", 0))
-        name = quote_result.get("simple_name") or ticket.symbol.upper()
-
-        try:
-            td = await rh.call_tool("get_equity_tradability", {"symbol": ticket.symbol})
-            tradable = td.get("is_tradable")
-            if not tradable:
-                warnings.append(f"{ticket.symbol} is not tradable on Robinhood.")
-        except Exception:
-            pass
-
-        est_total = round(ticket.quantity * (ticket.limit_price or price), 2)
-        try:
-            portfolio = await rh.call_tool("get_portfolio", {})
-            buying_power = float(portfolio.get("buying_power", 0))
-            estimate_price = ticket.limit_price if ticket.order_type == "limit" else price
-            est_total = round(ticket.quantity * estimate_price, 2)
-            buying_power_ok = buying_power >= est_total
-            if not buying_power_ok:
-                warnings.append(
-                    f"Buying power ${buying_power:.2f} is less than"
-                    f" estimated total ${est_total:.2f}."
-                )
-        except Exception:
-            est_total = round(ticket.quantity * (ticket.limit_price or price), 2)
-
-        data_source = "robinhood_mcp"
-        result = OrderPreview(
-            symbol=ticket.symbol.upper(),
-            name=name,
-            last_price=price,
-            est_total=est_total,
-            tradable=tradable,
-            buying_power_ok=buying_power_ok,
-            warnings=warnings,
-            data_source=data_source,
-            status="awaiting_human",
-        )
-
-    except RobinhoodUnavailable:
-        # Fall back to yfinance if USE_FIXTURES is off, else use cached fixture
-        if settings.use_fixtures:
-            result = OrderPreview.model_validate(fixture("preview_demo.json"))
-            fixture_symbol = result.symbol.upper()
-            result.symbol = ticket.symbol.upper()
-            if result.symbol != fixture_symbol:
-                result.name = f"{result.symbol} simulated stock review"
-            estimate_price = (
-                ticket.limit_price if ticket.order_type == "limit" else result.last_price
-            )
-            result.est_total = round(ticket.quantity * estimate_price, 2)
-            result.data_source = "simulated"
-            result.status = "awaiting_human"
-        else:
-            result = await _yfinance_preview(ticket)
-
-    result.status = "awaiting_human"
-    return result
+    symbol = ticket.symbol.upper()
+    quote = MOCK_QUOTES.get(
+        symbol,
+        {"name": f"{symbol} simulated stock review", "last_price": 10.0, "tradable": True},
+    )
+    price = quote["last_price"]
+    estimate_price = ticket.limit_price if ticket.order_type == "limit" else price
+    warnings = ["Simulated quote. No order has been placed."]
+    if not quote["tradable"]:
+        warnings.append(f"{symbol} is not tradable in this demo.")
+    return OrderPreview(
+        symbol=symbol,
+        name=quote["name"],
+        last_price=price,
+        est_total=round(ticket.quantity * estimate_price, 2),
+        tradable=quote["tradable"],
+        buying_power_ok=True,
+        warnings=warnings,
+        data_source="simulated",
+        status="awaiting_human",
+    )
