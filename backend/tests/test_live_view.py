@@ -104,6 +104,14 @@ async def test_live_mode_without_playwright_is_quiet(monkeypatch):
     assert ctx["signals"] == [] and live_browser.status("abc123")["state"] == "unavailable"
 
 
+def test_live_mode_does_not_serve_demo_previews(monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    assert live_browser.preview_path("clone-demo") is None
+    with TestClient(main.app) as client:
+        assert client.get("/v1/fraud/clone-demo/preview.jpg").status_code == 404
+        assert client.get("/v1/fraud/clone-demo/live.json").json()["state"] == "unavailable"
+
+
 class FakeCDP:
     def __init__(self):
         self.handlers, self.sent = {}, []

@@ -149,6 +149,14 @@ async def test_missing_and_demo_ids(client):
     assert (await client.get("/v1/fraud/clone-demo")).json()["band"] == "high"
 
 
+@pytest.mark.parametrize("path", [
+    "/v1/fraud/demo", "/v1/fraud/clone-demo", "/v1/fraud/real-demo", "/v1/stock/demo"
+])
+async def test_live_api_does_not_serve_demo_reports(client, monkeypatch, path):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    assert (await client.get(path)).status_code == 404
+
+
 async def test_wait_for_sections_does_not_wait_for_summary(client, monkeypatch):
     from app.agents.llm import explainer
 

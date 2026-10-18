@@ -181,9 +181,9 @@ async def run_stock(research_id: str, symbol: str, source_url: str | None = None
 
 
 async def get_report(job_id: str, kind: str) -> dict | None:
-    if kind == "fraud" and job_id in DEMO_FRAUD:
+    if settings.use_fixtures and kind == "fraud" and job_id in DEMO_FRAUD:
         return fixture(DEMO_FRAUD[job_id])
-    if kind == "stock" and job_id == "demo":
+    if settings.use_fixtures and kind == "stock" and job_id == "demo":
         return fixture("stock_demo.json")
     job = await store.get_job(job_id, kind)
     return job["result"] if job else None

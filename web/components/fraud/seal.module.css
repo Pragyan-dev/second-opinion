@@ -1,17 +1,24 @@
 .seal { position: relative; width: 240px; height: 240px; flex: none; }
 .svg { width: 100%; height: 100%; display: block; overflow: visible; }
 .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 24px; }
-.figure { font-size: 96px; line-height: 1; display: flex; align-items: baseline; }
-.pct { font-size: 38px; margin-left: 2px; font-family: var(--font-display); }
-.caption { font-size: 14px; color: var(--ink); margin-top: 6px; }
-.cant { font-size: 33px; line-height: 1.1; }
+.figure { font-size: calc(96px * var(--a11y-text-scale, 1)); line-height: 1; display: flex; align-items: baseline; }
+.pct { font-size: calc(38px * var(--a11y-text-scale, 1)); margin-left: 2px; font-family: var(--font-display); }
+.caption { font-size: calc(14px * var(--a11y-text-scale, 1)); color: var(--ink); margin-top: 6px; }
+.cant { font-size: calc(33px * var(--a11y-text-scale, 1)); line-height: 1.1; }
 @media (min-width: 640px) {
   .seal { width: 360px; height: 360px; }
-  .figure { font-size: 160px; }
-  .pct { font-size: 64px; }
-  .cant { font-size: 52px; }
+  .figure { font-size: calc(160px * var(--a11y-text-scale, 1)); }
+  .pct { font-size: calc(64px * var(--a11y-text-scale, 1)); }
+  .cant { font-size: calc(52px * var(--a11y-text-scale, 1)); }
 }
 .ring { stroke-linecap: round; }
+/* Keep the numeric result readable when it grows beyond the decorative seal. */
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .seal { width: 100%; max-width: 480px; height: auto; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .svg { position: absolute; inset: 0; opacity: .25; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .center { position: relative; padding: 32px 0; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .figure { flex-wrap: wrap; justify-content: center; }
+:global(html[data-a11y-pauseanimations="true"]) .draw { stroke-dashoffset: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .draw { stroke-dashoffset: 0 !important; } }
 @media (prefers-reduced-motion: no-preference) {
   .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: drawRing 1200ms ease-out forwards; }
   .misreg { animation: slide 300ms ease-out 900ms backwards; }

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Bodoni_Moda, Public_Sans } from "next/font/google";
 import { SiteNav } from "@/components/shared/SiteNav";
 import { RosetteGlyph } from "@/components/shared/RosetteGlyph";
+import { AccessibilityMenu } from "@/components/accessibility/AccessibilityMenu";
 import "./globals.css";
+import "./accessibility.css";
 
 const bodoni = Bodoni_Moda({ subsets: ["latin"], variable: "--font-bodoni", style: ["normal", "italic"], axes: ["opsz"], display: "swap", adjustFontFallback: false });
 const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-public", display: "swap" });
@@ -17,6 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${bodoni.variable} ${publicSans.variable}`}>
       <body>
+        <div id="dashboard-content">
         <a className="skip" href="#main">Skip to main content</a>
         <header className="siteHeader">
           <div className="siteHeaderInner">
@@ -24,11 +27,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <SiteNav />
           </div>
         </header>
-        <aside className="demoNotice"><p>Demo data. Brightwater Capital Advisors and BRWT are fictional.</p></aside>
-        <main id="main" className="page">{children}</main>
+        <aside className="demoNotice"><p>Live checks · Unavailable records are marked as not checked.</p></aside>
+        <main id="main" className="page" tabIndex={-1}>{children}</main>
         <footer className="siteFooter">
           <p>Not financial advice. Second Opinion never places trades. Likelihoods are estimates with hand-set weights.</p>
         </footer>
+        </div>
+        <AccessibilityMenu />
       </body>
     </html>
   );

@@ -15,7 +15,7 @@ from app.fraud.net import registered_domain
 log = logging.getLogger(__name__)
 
 RDAP_URL = "https://rdap.org/domain/{domain}"
-# RDAP has no records for these, so they always come from fixtures.
+# Reserved demo domains have no live registration records.
 FIXTURE_ONLY_SUFFIXES = (".example", ".test", ".localhost")
 
 
@@ -58,10 +58,10 @@ async def fetch_live(domain: str) -> dict:
 
 async def lookup(domain: str) -> tuple[dict, bool] | None:
     """Return (rdap_json, from_fixture) or None when no record is available."""
-    data = load_fixture(domain)
-    if data is not None:
-        return data, True
-    if fixture_only(domain) or settings.use_fixture("rdap"):
+    if settings.use_fixture("rdap"):
+        data = load_fixture(domain)
+        return (data, True) if data is not None else None
+    if fixture_only(domain):
         return None
     key = f"rdap:{domain}"
     cached = await cache.get(key)

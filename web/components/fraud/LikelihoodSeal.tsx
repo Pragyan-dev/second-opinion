@@ -34,12 +34,14 @@ export function LikelihoodSeal({ reportId, likelihood, band, running }: Props) {
     if (!hasNumber) { setShown(null); return; }
     if (animated.current === reportId) { setShown(likelihood!); return; }
     animated.current = reportId;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) { setShown(likelihood!); return; }
+    const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.getAttribute("data-a11y-pauseanimations") === "true";
+    if (reduce()) { setPlay(false); setShown(likelihood!); return; }
     setPlay(true); setShown(0);
     const start = performance.now() + 1200, dur = 700;
     let raf = 0;
     const tick = (now: number) => {
+      if (reduce()) { setPlay(false); setShown(likelihood!); return; }
       const t = Math.max(0, Math.min(1, (now - start) / dur));
       setShown(Math.round(likelihood! * (1 - Math.pow(1 - t, 3))));
       if (t < 1) raf = requestAnimationFrame(tick);

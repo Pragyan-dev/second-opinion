@@ -89,11 +89,11 @@ async def test_tavily(respx_mock, monkeypatch, fake_llm):
     assert result.data["items"][0]["is_press_release"] is True
 
 
-async def test_failure_falls_back_to_fixture_for_demo_symbol(respx_mock, brave):
+async def test_live_failure_never_falls_back_to_demo_articles(respx_mock, brave):
     respx_mock.get(news.BRAVE_URL).mock(return_value=httpx.Response(500))
-    assert len((await news.NewsAgent().run({"symbol": "BRWT"})).data["items"]) == 9
-    result = await news.NewsAgent().run({"symbol": "ZZZZ"})
-    assert result.status == "error"
+    for symbol in ("BRWT", "ZZZZ"):
+        result = await news.NewsAgent().run({"symbol": symbol})
+        assert result.status == "error" and not result.data.get("items")
 
 
 async def test_fixture_mode():

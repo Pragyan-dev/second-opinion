@@ -1,6 +1,6 @@
 # Second Opinion
 
-A Technica 2026 scaffold for message fraud checks, stock research, and human-reviewed funding previews. Every integration returns fixture data. Brightwater Capital Advisors and BRWT are fictional. The T. Rowe Price sample is a synthetic ordinary-post scenario with an explicitly unverified placeholder record, not a real account assessment. This demo gives no buy or sell advice.
+A Technica 2026 app for message fraud checks, stock research, and human-reviewed funding previews. The main API runs live checks by default. Bundled examples and placeholder records are confined to explicit fixture mode and the mock API. Brightwater Capital Advisors and BRWT are fictional test cases. This app gives no buy or sell advice.
 
 ## Architecture and folders
 
@@ -26,7 +26,15 @@ scripts/             schema/types, demo check, offline persona stub
 
 ## Start
 
-Install Python 3.11 and Node.js 22. Run `make setup` and `make types`. Keys may remain empty; all adapters stay offline in this PR even if credentials exist. Copy `.env.example` to `.env` for backend settings. Export `NEXT_PUBLIC_API_BASE` before starting Next.js or put it in `web/.env.local`. Run long-lived commands in separate terminals.
+Install Python 3.11 and Node.js 22. Run `make setup` and `make types`. Copy `.env.example` to `.env` and configure the OpenRouter and search keys. Use `USE_FIXTURES=0`, an empty `FIXTURE_AGENTS`, and `LIVE_BROKERCHECK=1` for live checks. Run `make dev` and `make web` in separate terminals; the dashboard proxies API requests to port 8000 by default.
+
+Live BrokerCheck and RDAP lookups never substitute bundled records. Reserved `.example` domains have no live registration age. Missing record fields and failed lookups are shown as not checked. Demo report IDs are unavailable on the live API. Existing reports are historical snapshots: submit a new capture after changing modes. To separate earlier demo jobs from live reports, set `DATABASE_PATH` to a new SQLite file such as `jobs-live.sqlite`.
+
+For offline development, use `USE_FIXTURES=1 make dev` or `make mock`. Tests enable fixture mode explicitly and block network access.
+
+The dashboard has an **Accessibility** button on every page; **Ctrl+U** or **⌘+U** also opens it, and **Escape** closes it. It includes contrast modes, link highlighting, text size/spacing/alignment, line height, a readable font, animation pause, image hiding, a large cursor/reading guide, tooltips, and a live heading outline. Preferences are saved in this browser; **Reset all settings** restores defaults. **Oversized widget** enlarges the controls.
+
+The menu’s **Screen Reader** tile reads visible page text (or selected text) aloud through browser speech synthesis, with pause/resume/stop controls. It supplements the device’s screen reader. **Voice Navigation** shows the supported commands and requires an explicit **Start listening** click and microphone permission. Recognition depends on the browser and may use its speech service; unavailable features and errors are explained in the menu. Speech and microphone state are never saved and stop on dashboard route changes. UI regression checks run with `cd web && npm run test:ui`.
 
 | Role | Start |
 | --- | --- |
@@ -59,21 +67,21 @@ Funding requires the literal JSON value `human_confirmed: true`; false, missing,
 2. **Research:** start BRWT research from the Robinhood research chip or view `/stock/demo`. All five sections, dated articles with relevance scores, pros, cons, and questions use fixtures. The article controls sort by newest date or relevance.
 3. **Review:** open `/checkout/demo`, adjust shares, inspect the simulated preview, and explicitly click Approve transfer to create a mock funding ID. The order button stays disabled. **No order has been placed.**
 
-The extension reads Gmail only when one message body is visibly open; it never enumerates inbox rows or calls Gmail APIs. X capture is scoped to the selected status post. Stock-page URL changes re-detect the symbol and refresh the research chip. Generic fallback is disabled on these supported hosts when their detector refuses the page.
+The extension reads Gmail only when one message body is visibly open; it never enumerates inbox rows or calls Gmail APIs. X capture is scoped to the selected status post. Stock-page URL changes re-detect the symbol and refresh the research chip. The research chip appears on stock quote pages on Robinhood, Yahoo Finance, Google Finance and Google stock searches, MarketWatch, CNBC, Nasdaq, Seeking Alpha, Finviz, TradingView, Bloomberg, Morningstar, Stocktwits, Zacks, Motley Fool, Barron's, Webull and Reuters (`extension/detectors/stock.js`). On any other page, the popup offers research for tickers the page mentions, such as `$AAPL` or `NASDAQ: AAPL`. Generic fallback is disabled on these supported hosts when their detector refuses the page.
 
 ## Validation and merge rules
 
 ```sh
 make test
 make types
-cd web && npm run test:extension && npm run build
+cd web && npm run test:ui && npm run test:extension && npm run build
 # Start make mock in another terminal:
 API_BASE=http://localhost:8001 make demo-check
 ```
 
 The demo check submits both fraud cases, polls stock research, verifies a simulated preview, checks confirmation refusal and tool guards, then runs `test_no_trade.py`. Main and mock share tests. Extension checks validate the manifest, detector privacy boundaries, generated types, and stock SPA behavior. Browser DOM selectors still need manual verification against real site layouts. Real adapters, crawling, charts, and live cached lookups remain owner-tagged TODOs.
 
-Keep PRs small and coordinate shared contracts with B. Main must always run from fixtures. Contract changes require schema, both type files, and fixtures in the same PR. Team handles remain unassigned in CODEOWNERS as requested. The fictional demo site must never copy a real company's identity or label a real company as a scam.
+Keep PRs small and coordinate shared contracts with B. Keep fixtures isolated from live lookups. Contract changes require schema, both type files, and fixtures in the same PR. Team handles remain unassigned in CODEOWNERS as requested. The fictional demo site must never copy a real company's identity or label a real company as a scam.
 
 For the obsolete-name check, scan Git-tracked source files rather than installed dependencies, build output, or local SQLite data. Allow only the migration note below.
 

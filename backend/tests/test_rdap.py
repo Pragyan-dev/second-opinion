@@ -18,8 +18,7 @@ def ctx_with_site(url, emails=()):
     return {"site_visit": visit, "site_domain": domain, "signals": [], "errors": {}, "entities": {}}
 
 
-async def test_example_domains_read_fixtures(respx_mock, monkeypatch):
-    monkeypatch.setattr(settings, "use_fixtures", False)
+async def test_example_domains_read_fixtures_only_in_fixture_mode(respx_mock):
     route = respx_mock.get(url__regex=r"https://rdap\.org/.*")
     ctx = ctx_with_site(
         "https://brightwater-capital.example/", ["help@brightwater-advisors.example"]
@@ -42,6 +41,30 @@ async def test_fixture_only_domain_without_fixture_is_unknown(respx_mock, monkey
     ctx = ctx_with_site("https://nothing-here.example/")
     await rdap.RdapStep().run(ctx)
     assert not route.called and ctx["signals"][0].check == "unknown"
+
+
+async def test_live_reserved_domain_does_not_use_bundled_age(respx_mock, monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    route = respx_mock.get(url__regex=r"https://rdap\.org/.*")
+    ctx = ctx_with_site("https://brightwater-capital.example/")
+    await rdap.RdapStep().run(ctx)
+    assert not route.called
+    assert ctx["site_visit"].domain_age_days is None
+    assert ctx["signals"][0].check == "unknown"
+
+
+async def test_live_public_domain_ignores_existing_fixture(respx_mock, monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    registered = (datetime.now(timezone.utc) - timedelta(days=500)).isoformat()
+    route = respx_mock.get("https://rdap.org/domain/troweprice.com").mock(
+        return_value=httpx.Response(200, json={
+            "events": [{"eventAction": "registration", "eventDate": registered}]
+        })
+    )
+    ctx = ctx_with_site("https://www.troweprice.com/")
+    await rdap.RdapStep().run(ctx)
+    assert route.called and ctx["site_visit"].domain_age_days == 500
+    assert "fixture" not in ctx["signals"][0].source.title
 
 
 async def test_live_rdap_parses_registration_date(respx_mock, monkeypatch):

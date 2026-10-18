@@ -22,12 +22,6 @@
 @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
 .lead { max-width: 52ch; margin-top: 16px; font-size: var(--s1); }
 
-.demo { margin-top: 32px; border-top: 1px solid var(--engrave); padding-top: 16px; }
-.demo summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 10px; list-style: none; }
-.demo summary::-webkit-details-marker { display: none; }
-.demo summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); transform: rotate(-45deg); transition: transform 150ms; }
-.demo[open] summary::before { transform: rotate(45deg); }
-.demo summary:hover { text-decoration: underline; text-decoration-color: var(--engrave); text-underline-offset: 3px; }
-.demoBody { display: grid; gap: 24px; grid-template-columns: 1fr; padding-top: 8px; }
-@media (min-width: 1024px) { .demoBody { grid-template-columns: 1fr 1fr; } }
-.demoBody h2 { font-size: var(--s1); margin-bottom: 8px; }
+.research { max-width: 540px; margin-top: 32px; border-top: 1px solid var(--engrave); padding-top: 24px; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .symbolRow { flex-wrap: wrap; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .symbolRow input { min-width: min(100%, 180px); }

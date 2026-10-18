@@ -24,17 +24,43 @@ function watch(id) {
   }
   poll();
 }
+async function captureTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  try { return await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" }); }
+  catch {
+    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+    return chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" });
+  }
+}
+
+// Any page: offer research for the stock it is about, or for tickers it mentions.
+async function offerResearch() {
+  const { capture } = await captureTab();
+  const tickers = (capture?.tickers || []).slice(0, 3);
+  if (!tickers.length) return;
+  document.querySelector("#research").hidden = false;
+  document.querySelector("#tickers").replaceChildren(...tickers.map(symbol => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = `Research ${symbol}`;
+    button.onclick = async () => {
+      button.disabled = true;
+      try {
+        const job = await chrome.runtime.sendMessage({ type: "RESEARCH", symbol, source_url: capture.url });
+        if (job.error) throw new Error(job.error);
+        status.textContent = `Research for ${symbol} opened in a new tab.`;
+      } catch (error) { status.textContent = error.message; }
+      finally { button.disabled = false; }
+    };
+    return button;
+  }));
+}
+
 document.querySelector("#analyze").onclick = async event => {
   event.target.disabled = true; clearTimeout(timer); currentId = undefined;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     status.textContent = "Capturing visible content…";
-    let result;
-    try { result = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" }); }
-    catch {
-      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
-      result = await chrome.tabs.sendMessage(tab.id, { type: "CAPTURE" });
-    }
+    const result = await captureTab();
     if (result.error) throw new Error(result.error);
     if (!result.capture) throw new Error("Open one email, an individual X post, or a supported webpage");
     const job = await chrome.runtime.sendMessage({ type: "ANALYZE", capture: result.capture });
@@ -45,3 +71,4 @@ document.querySelector("#analyze").onclick = async event => {
 };
 const { reportJob } = await chrome.storage.local.get("reportJob");
 if (reportJob?.report_id) watch(reportJob.report_id);
+offerResearch().catch(() => {});

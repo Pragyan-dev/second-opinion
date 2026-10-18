@@ -3,9 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { href: "/fraud/clone-demo", match: "/fraud", label: "Fraud check" },
-  { href: "/stock/demo", match: "/stock", label: "Stock research" },
-  { href: "/checkout/demo", match: "/checkout", label: "Checkout" },
+  { href: "/#capture", match: "/fraud", label: "Fraud check" },
+  { href: "/#stock-research", match: "/stock", label: "Stock research" },
 ];
 
 export function SiteNav() {

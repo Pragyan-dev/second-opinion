@@ -25,7 +25,24 @@
         "https://robinhood.com/stocks/*",
         "https://x.com/*",
         "https://mail.google.com/*",
-        "http://localhost:5500/*"
+        "http://localhost:5500/*",
+        "https://finance.yahoo.com/*",
+        "https://www.google.com/finance/*",
+        "https://www.google.com/search*",
+        "https://www.marketwatch.com/*",
+        "https://www.cnbc.com/*",
+        "https://www.nasdaq.com/*",
+        "https://seekingalpha.com/*",
+        "https://finviz.com/*",
+        "https://www.tradingview.com/*",
+        "https://www.bloomberg.com/*",
+        "https://www.morningstar.com/*",
+        "https://stocktwits.com/*",
+        "https://www.zacks.com/*",
+        "https://www.fool.com/*",
+        "https://www.barrons.com/*",
+        "https://www.webull.com/*",
+        "https://www.reuters.com/*"
       ],
       "js": [
         "content.js"
@@ -37,7 +54,8 @@
     {
       "resources": [
         "detectors/*.js",
-        "lib/capture.js"
+        "lib/capture.js",
+        "lib/linkGuard.js"
       ],
       "matches": [
         "<all_urls>"

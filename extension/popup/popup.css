@@ -2,3 +2,4 @@ body { width: 360px; margin: 18px; font: 14px/1.5 system-ui; color: #173d3e; bac
 h1 { font-size: 22px; } h2 { font-size: 18px; } ul { padding-left: 20px; } li { margin-bottom: 12px; }
 button { background: #215758; color: white; border: 0; border-radius: 6px; padding: 11px 16px; cursor: pointer; }
 button:disabled { opacity: .6; }
+.hint { margin: 4px 0 8px; color: #4d6661; } .tickers { display: flex; flex-wrap: wrap; gap: 8px; } .tickers button { padding: 8px 14px; }

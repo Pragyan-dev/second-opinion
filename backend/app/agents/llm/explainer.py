@@ -100,6 +100,13 @@ def keep_cited(bullets: list[Bullet], sources: dict[str, str]) -> list[ProCon]:
     return kept[:MAX_BULLETS]
 
 
+UNITS_NOTE = (
+    "Units: vol_30d, vol_90d, yield_ttm, return_1y, return_5y, max_drawdown_1y, price_return_1y "
+    "and total_return_1y are fractions (0.05 means 5%). move_per_1000_usd and "
+    "spy_move_per_1000_usd are dollars a $1,000 position moves on a typical day."
+)
+
+
 def section_sources(sections: dict[str, AgentResult]) -> dict[str, str]:
     return {s.url: s.title for result in sections.values() for s in result.sources}
 
@@ -234,6 +241,7 @@ async def explain_stock(ctx: dict) -> dict:
     prompt = (
         f"Symbol: {ctx['symbol']}\n"
         f"Research sections:\n{json.dumps(data, default=str)[:8000]}\n"
+        f"{UNITS_NOTE}\n"
         f"Articles:\n{json.dumps(headlines)[:4000]}\n"
         "Sources (url: title):\n" + "\n".join(f"{url}: {t}" for url, t in sources.items())
     )

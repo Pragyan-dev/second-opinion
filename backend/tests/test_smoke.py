@@ -180,7 +180,8 @@ def test_agents_offline_live_path(monkeypatch, tmp_path, module_name, cache_key,
     from app.agents.data import _common
 
     monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
-    monkeypatch.setenv("USE_FIXTURES", "0")
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    monkeypatch.setattr(settings, "fixture_agents", set())
     monkeypatch.setenv("DATA_OFFLINE", "1")
     _common._save_cache(cache_key, {**payload, "as_of": time.time() - 48 * 60 * 60})
     agent = importlib.import_module(f"app.agents.data.{module_name}")

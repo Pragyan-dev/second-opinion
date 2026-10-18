@@ -40,7 +40,7 @@ class Settings:
         self.search_provider = os.getenv("SEARCH_PROVIDER", "").strip().lower()
         self.search_api_key = os.getenv("SEARCH_API_KEY", "")
         self.sec_user_agent = os.getenv("SEC_USER_AGENT", "")
-        self.use_fixtures = os.getenv("USE_FIXTURES", "1") != "0"
+        self.use_fixtures = os.getenv("USE_FIXTURES", "0") != "0"
         self.fixture_agents = set(_csv(os.getenv("FIXTURE_AGENTS", "")))
         self.agent_timeout_s = float(os.getenv("AGENT_TIMEOUT_S", "8"))
         self.crawl_allow_hosts = set(
@@ -55,7 +55,7 @@ class Settings:
         self.live_view_max_pages = int(os.getenv("LIVE_VIEW_MAX_PAGES", "5"))
         self.live_view_seconds_per_page = float(os.getenv("LIVE_VIEW_SECONDS_PER_PAGE", "6"))
         self.live_view_timeout_s = float(os.getenv("LIVE_VIEW_TIMEOUT_S", "45"))
-        self.live_brokercheck = os.getenv("LIVE_BROKERCHECK", "0") == "1"
+        self.live_brokercheck = os.getenv("LIVE_BROKERCHECK", "1") == "1"
         # TODO(B): confirm this endpoint in the BrokerCheck site's browser network tab.
         self.brokercheck_search_url = os.getenv(
             "BROKERCHECK_SEARCH_URL", "https://api.brokercheck.finra.org/search/firm"

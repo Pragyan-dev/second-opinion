@@ -1,9 +1,10 @@
 """Red-flags data agent: exchange, OTC tier, SEC suspension, name change. Owner D."""
 
 import json
-import os
 import time
 from pathlib import Path
+
+from app.config import settings
 
 try:
     from app.contracts import AgentResult, Source
@@ -123,8 +124,7 @@ class RedFlagsAgent:
     name = "red_flags"
 
     async def run(self, ctx: dict) -> AgentResult:
-        use_fixtures = os.getenv("USE_FIXTURES", "1") != "0"
-        if use_fixtures:
+        if settings.use_fixture(self.name):
             from app.config import fixture
             return AgentResult.model_validate(fixture("stock_demo.json")["sections"][self.name])
 
