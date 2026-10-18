@@ -30,24 +30,43 @@ export default function Home() {
 
   return (
     <>
-      <section className={styles.hero}>
-        <h1 className={styles.pitch}>
-          Check the pitch before you believe it. Research the stock before you buy it. The final click is yours.
-        </h1>
+      <section className={styles.hero} aria-labelledby="waiting-title">
+        <div>
+          <p className={styles.status}><span className={styles.dot} aria-hidden="true" />Waiting for a capture</p>
+          <h1 id="waiting-title" className={styles.pitch}>No report yet.</h1>
+          <p className={styles.lead}>
+            Open an email, an X post or a website, then click <strong>Analyze</strong> in the Second Opinion
+            extension. The checks run in the background and the report opens here.
+          </p>
+        </div>
         <div className={styles.ornament} aria-hidden="true"><RosetteGlyph size={220} rings={14} seed="home" /></div>
       </section>
 
       <ol className={styles.acts}>
         <li>
-          <h2>Check a message</h2>
-          <p className="muted">See how a genuine firm and a clone firm look side by side.</p>
-          <p><Link href="/fraud/real-demo">T. Rowe Price post (low)</Link></p>
-          <p><Link href="/fraud/clone-demo">Brightwater email (high)</Link></p>
+          <h2>Capture</h2>
+          <p className="muted">The extension reads only what is visible: the open email, the selected post or the page.</p>
         </li>
         <li>
-          <h2>Research a stock</h2>
-          <p className="muted">Price history, how much it moves, red flags and sourced coverage.</p>
-          <p><Link href="/stock/demo">BRWT report</Link></p>
+          <h2>Check</h2>
+          <p className="muted">Agents visit the linked site, compare contacts with the official record, check the domain age and score pressure language.</p>
+        </li>
+        <li>
+          <h2>Report</h2>
+          <p className="muted">The fraud report fills in step by step, with sources for every finding. On a stock page, the research report opens the same way.</p>
+        </li>
+      </ol>
+
+      <details className={styles.demo}>
+        <summary>Try without the extension</summary>
+        <div className={styles.demoBody}>
+          <div>
+            <h2>Demo reports</h2>
+            <p><Link href="/fraud/real-demo">T. Rowe Price post (low)</Link></p>
+            <p><Link href="/fraud/clone-demo">Brightwater email (high)</Link></p>
+            <p><Link href="/stock/demo">BRWT stock report</Link></p>
+            <p><Link href="/checkout/demo">Order preview</Link></p>
+          </div>
           <form onSubmit={research} className={styles.symbolForm} noValidate>
             <label htmlFor="research-symbol">Research a symbol</label>
             <div className={styles.symbolRow}>
@@ -57,13 +76,8 @@ export default function Home() {
             </div>
             {error && <p id="research-error" role="alert" className={styles.err}>{error}</p>}
           </form>
-        </li>
-        <li>
-          <h2>Preview an order</h2>
-          <p className="muted">Review the ticket and approve a sandbox transfer yourself.</p>
-          <p><Link href="/checkout/demo">Open the order preview</Link></p>
-        </li>
-      </ol>
+        </div>
+      </details>
       <p className="muted" style={{ marginTop: 40 }}>Second Opinion previews orders but can&apos;t place them.</p>
     </>
   );
