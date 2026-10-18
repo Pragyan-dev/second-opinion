@@ -1,5 +1,6 @@
 """V2 route coverage, fixture validation, sequencing, and incremental persistence."""
 
+import asyncio
 import html
 import json
 import re
@@ -14,10 +15,14 @@ from app.config import FIXTURES, fixture, settings
 from app.contracts import (
     Capture,
     FraudReport,
+    FundingRequest,
     OfficialContact,
     OrderPreview,
+    OrderTicket,
     StockReport,
 )
+from app.purchase.nessie import fund
+from app.purchase.preview import preview
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -91,6 +96,158 @@ def test_stock_routes(client):
     if client.app is mock.app:
         assert [len(x["sections"]) for x in snapshots] == [1, 2, 3, 4, 5, 5]
         assert all(not x["articles"] for x in snapshots[:-1])
+
+
+def test_preview_uses_mock_quotes():
+    apple = asyncio.run(preview(OrderTicket(symbol="AAPL", quantity=2, order_type="market")))
+    assert apple.name == "Apple"
+    assert apple.last_price == 227.50
+    assert apple.est_total == 455.0
+    assert apple.data_source == "simulated"
+    assert apple.tradable is True
+
+    meep = asyncio.run(preview(OrderTicket(symbol="MEEP", quantity=10, order_type="market")))
+    assert meep.name == "Meep Meep Mining Co"
+    assert meep.est_total == 4.2
+
+    pickles = asyncio.run(preview(OrderTicket(symbol="QXZQ", quantity=1, order_type="market")))
+    assert pickles.tradable is False
+
+    unknown = asyncio.run(preview(OrderTicket(symbol="ZZZZ", quantity=1, order_type="market")))
+    assert unknown.last_price == 10.0
+    assert unknown.name == "ZZZZ simulated stock review"
+
+
+@pytest.mark.parametrize(
+    ("module_name", "cache_key", "payload"),
+    [
+        (
+            "market",
+            "market_AAPL",
+            {
+                "price": 10,
+                "vol_30d": 1,
+                "vol_90d": 2,
+                "move_per_1000_usd": 1,
+                "spy_move_per_1000_usd": 0.5,
+                "max_drawdown_1y": -3,
+                "volume_vs_30d": 1.2,
+            },
+        ),
+        (
+            "income",
+            "income_AAPL",
+            {
+                "pays_dividend": True,
+                "yield_ttm": 0.01,
+                "frequency": "quarterly",
+                "last_ex_date": "2026-01-01",
+                "years_uninterrupted": 4,
+                "price_return_1y": 0.1,
+                "total_return_1y": 0.12,
+            },
+        ),
+        (
+            "red_flags",
+            "red_flags_AAPL",
+            {
+                "exchange": "NASDAQ",
+                "otc_tier": None,
+                "caveat_emptor": False,
+                "sec_suspension": False,
+                "recent_name_change": False,
+            },
+        ),
+        (
+            "history",
+            "history_AAPL",
+            {
+                "prices_1y": [],
+                "prices_5y": [],
+                "high_52w": 11,
+                "low_52w": 8,
+                "return_1y": 0.1,
+                "return_5y": 0.4,
+                "max_drawdown_1y": -0.2,
+                "earnings_dates": [],
+            },
+        ),
+    ],
+)
+def test_agents_offline_live_path(monkeypatch, tmp_path, module_name, cache_key, payload):
+    import importlib
+
+    from app.agents.data import _common
+
+    monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
+    monkeypatch.setenv("USE_FIXTURES", "0")
+    monkeypatch.setenv("DATA_OFFLINE", "1")
+    _common._save_cache(cache_key, {**payload, "as_of": time.time() - 48 * 60 * 60})
+    agent = importlib.import_module(f"app.agents.data.{module_name}")
+    cls = next(
+        obj
+        for name, obj in agent.__dict__.items()
+        if isinstance(obj, type) and name.endswith("Agent")
+    )
+    result = asyncio.run(cls().run({"symbol": "AAPL"}))
+    assert result.status == "done"
+    assert result.error and "cached copy" in result.error
+    for field, value in payload.items():
+        assert result.data[field] == value
+
+
+def test_fund_parses_live_nessie_transfer(monkeypatch, tmp_path):
+    import httpx
+
+    from app.purchase import nessie
+
+    class Response:
+        status_code = 201
+        text = ""
+
+        def json(self):
+            return {"objectCreated": {"_id": "transfer-live"}}
+
+    monkeypatch.setattr(settings, "funding_offline", False)
+    monkeypatch.setattr(settings, "nessie_api_key", "test-key")
+    monkeypatch.setattr(nessie, "_FIXTURES_NESSIE", tmp_path)
+    monkeypatch.setattr(httpx, "post", lambda *args, **kwargs: Response())
+    result = fund(
+        FundingRequest(
+            customer_id="customer",
+            from_account_id="checking",
+            to_account_id="brokerage",
+            amount=1,
+            human_confirmed=True,
+        )
+    )
+    assert result == {"transfer_id": "transfer-live"}
+    assert (tmp_path / "transfer.json").exists()
+
+
+def test_cache_rejects_stale_copy_unless_offline(monkeypatch, tmp_path):
+    from app.agents.data import _common
+
+    monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
+    monkeypatch.delenv("DATA_OFFLINE", raising=False)
+
+    async def fail():
+        raise RuntimeError("down")
+
+    _common._save_cache("quote", {"price": 1, "as_of": time.time()})
+    fresh = asyncio.run(_common.run_cached("quote", fail))
+    assert fresh["price"] == 1
+    assert "cached copy" in fresh["error"]
+
+    _common._save_cache("quote", {"price": 1, "as_of": time.time() - 25 * 60 * 60})
+    stale = asyncio.run(_common.run_cached("quote", fail))
+    assert "price" not in stale
+    assert "no cache" in stale["error"]
+
+    monkeypatch.setenv("DATA_OFFLINE", "1")
+    offline = asyncio.run(_common.run_cached("quote", fail))
+    assert offline["price"] == 1
+    assert "DATA_OFFLINE" in offline["error"]
 
 
 def test_preview_route(client):

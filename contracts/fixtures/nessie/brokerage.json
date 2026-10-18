@@ -1,0 +1,13 @@
+{
+  "code": 201,
+  "message": "Account created",
+  "objectCreated": {
+    "type": "Savings",
+    "nickname": "Second Opinion Demo Brokerage",
+    "rewards": 0,
+    "balance": 0,
+    "_id": "02cb4b23-cf32-47df-9b85-d68b4aba25e5",
+    "account_number": "9626727797053799",
+    "customer_id": "68395a5e-076e-49fe-ba22-a1c86daf2d2b"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "code": 201,
+  "message": "Account created",
+  "objectCreated": {
+    "type": "Checking",
+    "nickname": "Second Opinion Demo Checking",
+    "rewards": 0,
+    "balance": 10000,
+    "_id": "a04e20c2-440e-4743-bb2c-9a436f303fa1",
+    "account_number": "1538739766646502",
+    "customer_id": "68395a5e-076e-49fe-ba22-a1c86daf2d2b"
+  }
+}
