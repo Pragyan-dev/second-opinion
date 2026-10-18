@@ -23,3 +23,5 @@
 .lead { max-width: 52ch; margin-top: 16px; font-size: var(--s1); }
 
 .research { max-width: 540px; margin-top: 32px; border-top: 1px solid var(--engrave); padding-top: 24px; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .symbolRow { flex-wrap: wrap; }
+:global(html[data-a11y-textsize]:not([data-a11y-textsize="0"])) .symbolRow input { min-width: min(100%, 180px); }

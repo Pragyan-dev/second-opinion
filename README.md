@@ -32,6 +32,10 @@ Live BrokerCheck and RDAP lookups never substitute bundled records. Reserved `.e
 
 For offline development, use `USE_FIXTURES=1 make dev` or `make mock`. Tests enable fixture mode explicitly and block network access.
 
+The dashboard has an **Accessibility** button on every page; **Ctrl+U** or **⌘+U** also opens it, and **Escape** closes it. It includes contrast modes, link highlighting, text size/spacing/alignment, line height, a readable font, animation pause, image hiding, a large cursor/reading guide, tooltips, and a live heading outline. Preferences are saved in this browser; **Reset all settings** restores defaults. **Oversized widget** enlarges the controls.
+
+The menu’s **Screen Reader** tile reads visible page text (or selected text) aloud through browser speech synthesis, with pause/resume/stop controls. It supplements the device’s screen reader. **Voice Navigation** shows the supported commands and requires an explicit **Start listening** click and microphone permission. Recognition depends on the browser and may use its speech service; unavailable features and errors are explained in the menu. Speech and microphone state are never saved and stop on dashboard route changes. UI regression checks run with `cd web && npm run test:ui`.
+
 | Role | Start |
 | --- | --- |
 | A | `make mock`, `make demo`; change `extension/config.js` API_BASE to `http://localhost:8001`, load `extension/` unpacked at `chrome://extensions`, then open `http://localhost:5500`. |
