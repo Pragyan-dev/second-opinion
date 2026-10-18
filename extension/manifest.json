@@ -37,7 +37,8 @@
     {
       "resources": [
         "detectors/*.js",
-        "lib/capture.js"
+        "lib/capture.js",
+        "lib/linkGuard.js"
       ],
       "matches": [
         "<all_urls>"

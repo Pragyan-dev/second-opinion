@@ -40,6 +40,18 @@
     };
     if (!existing) document.body.append(chip);
   }
+  // Gmail: stop clicks on links inside an open message and offer a Second Opinion check instead.
+  if (location.hostname === "mail.google.com") {
+    Promise.all([
+      import(chrome.runtime.getURL("lib/linkGuard.js")),
+      import(chrome.runtime.getURL("detectors/gmail.js")),
+    ]).then(([{ installLinkGuard }, gmail]) => installLinkGuard({
+      doc: document,
+      win: window,
+      captureFor: anchor => gmail.captureMessage(anchor.closest(".adn.ads")) || gmail.detect(),
+      send: message => chrome.runtime.sendMessage(message),
+    })).catch(console.error);
+  }
   refreshChip().catch(console.error);
   // Detect stock-to-stock SPA navigation and chip removal during a page render.
   if (location.hostname === "robinhood.com") setInterval(() => refreshChip().catch(console.error), 750);

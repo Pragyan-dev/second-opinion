@@ -128,7 +128,7 @@ test("manifest references real entry points and declares detector modules", () =
   assert.deepEqual(manifest.content_scripts[0].matches, [
     "https://robinhood.com/stocks/*", "https://x.com/*", "https://mail.google.com/*", "http://localhost:5500/*",
   ]);
-  assert.deepEqual(manifest.web_accessible_resources[0].resources, ["detectors/*.js", "lib/capture.js"]);
+  assert.deepEqual(manifest.web_accessible_resources[0].resources, ["detectors/*.js", "lib/capture.js", "lib/linkGuard.js"]);
   assert.deepEqual(manifest.host_permissions, ["http://localhost:8000/*", "http://localhost:8001/*"]);
 });
 
