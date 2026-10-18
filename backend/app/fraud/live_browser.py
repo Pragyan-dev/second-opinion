@@ -67,7 +67,7 @@ def previews_dir() -> Path:
 
 def preview_path(report_id: str) -> Path | None:
     """Saved screenshot for a job, or the demo fixture for the fixed demo ids."""
-    if report_id in DEMO_PREVIEWS:
+    if settings.use_fixtures and report_id in DEMO_PREVIEWS:
         return FIXTURES / "previews" / DEMO_PREVIEWS[report_id]
     if not report_id.isalnum():
         return None

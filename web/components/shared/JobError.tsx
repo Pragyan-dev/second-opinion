@@ -5,11 +5,8 @@ import { API_BASE, ApiError } from "@/lib/api";
 export function NotFoundCopy() {
   return (
     <div className="errorBox" role="alert">
-      <p>There&apos;s no report with that id. Start a new check from the extension, or open one of the demo reports.</p>
-      <p className="small">
-        <Link href="/fraud/real-demo">Real firm example</Link>{" "}<Link href="/fraud/clone-demo">Clone firm example</Link>{" "}
-        <Link href="/stock/demo">Stock example</Link>
-      </p>
+      <p>There&apos;s no report with that id. Start a new check from the extension.</p>
+      <p className="small"><Link href="/">Start a new check</Link></p>
     </div>
   );
 }

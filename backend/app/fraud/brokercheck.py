@@ -1,4 +1,4 @@
-"""Official firm record from BrokerCheck: fixtures first, optional live search. Owner B."""
+"""Official firm records from BrokerCheck, with fixtures only in explicit fixture mode. Owner B."""
 
 import asyncio
 import json
@@ -175,10 +175,12 @@ def live_enabled() -> bool:
 
 async def lookup(firm: str | None, crd: str | None) -> tuple[OfficialContact | None, bool]:
     """Return (contact, searched_live). Raises on live lookup errors."""
-    if crd and (found := fixture_by_crd(crd)):
-        return found, False
-    if firm and (found := fixture_by_firm(firm)):
-        return found, False
+    if settings.use_fixture("brokercheck"):
+        if crd and (found := fixture_by_crd(crd)):
+            return found, False
+        if firm and (found := fixture_by_firm(firm)):
+            return found, False
+        return None, False
     if not live_enabled():
         return None, False
     crd_digits = re.sub(r"\D", "", crd or "")

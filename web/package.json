@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
+    "test:ui": "node --test tests/*.test.cjs",
     "test:extension": "node --experimental-vm-modules --test ../extension/tests/*.test.mjs"
   },
   "dependencies": {

@@ -19,6 +19,7 @@ dependencies = [
   "tldextract>=5.1",
   "phonenumbers>=8.13",
   "rapidfuzz>=3.9",
+  "yfinance>=0.2",
 ]
 
 [project.optional-dependencies]

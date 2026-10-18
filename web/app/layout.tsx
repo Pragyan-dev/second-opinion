@@ -24,7 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <SiteNav />
           </div>
         </header>
-        <aside className="demoNotice"><p>Demo data. Brightwater Capital Advisors and BRWT are fictional.</p></aside>
+        <aside className="demoNotice"><p>Live checks · Unavailable records are marked as not checked.</p></aside>
         <main id="main" className="page">{children}</main>
         <footer className="siteFooter">
           <p>Not financial advice. Second Opinion never places trades. Likelihoods are estimates with hand-set weights.</p>

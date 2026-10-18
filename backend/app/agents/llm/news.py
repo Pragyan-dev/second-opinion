@@ -123,15 +123,12 @@ class NewsAgent:
 
     async def run(self, ctx: dict) -> AgentResult:
         symbol = ctx["symbol"].upper()
-        demo_symbol = fixture("stock_demo.json")["symbol"]
         if settings.use_fixture(self.name):
             return fixture_result()
         try:
             return await self.live(symbol, ctx.get("company_name"))
         except Exception as exc:
             log.info("news search failed: %s", exc)
-            if symbol == demo_symbol:
-                return fixture_result()
             return AgentResult(agent=self.name, status="error", error=str(exc) or "search failed")
 
     async def live(self, symbol: str, company: str | None) -> AgentResult:

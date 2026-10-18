@@ -133,6 +133,47 @@ async def test_live_lookup_by_crd_uses_detail_endpoint(respx_mock, monkeypatch):
     assert detail.called and ctx["official_contact"].phone == "+14103452000"
 
 
+async def test_live_firm_with_bundled_placeholder_uses_real_lookup(respx_mock, monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    monkeypatch.setattr(settings, "live_brokercheck", True)
+    monkeypatch.setattr(brokercheck, "THROTTLE_S", 0)
+    route = respx_mock.get(settings.brokercheck_search_url).mock(
+        return_value=httpx.Response(200, json={"hits": {"hits": [
+            search_hit("T. ROWE PRICE INVESTMENT SERVICES, INC.", "8348", bd="25130")
+        ]}})
+    )
+    respx_mock.get(f"{settings.brokercheck_search_url}/8348").mock(
+        return_value=httpx.Response(200, json=firm_detail(
+            "T. ROWE PRICE INVESTMENT SERVICES, INC.", "8348", "(410) 345-2000"
+        ))
+    )
+    ctx = ctx_for(["T. Rowe Price"])
+    await brokercheck.BrokercheckStep().run(ctx)
+    assert route.called
+    contact = ctx["official_contact"]
+    assert contact.crd == "8348" and contact.phone == "+14103452000"
+    assert contact.firm == "T. ROWE PRICE INVESTMENT SERVICES, INC."
+    assert contact.website is None and contact.source.title == "FINRA BrokerCheck"
+
+
+async def test_live_failure_never_substitutes_a_placeholder(respx_mock, monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    monkeypatch.setattr(settings, "live_brokercheck", True)
+    respx_mock.get(settings.brokercheck_search_url).mock(return_value=httpx.Response(503))
+    ctx = ctx_for(["T. Rowe Price"])
+    await brokercheck.BrokercheckStep().run(ctx)
+    assert "official_contact" not in ctx
+    assert ctx["signals"][0].check == "unknown"
+
+
+async def test_live_disabled_does_not_enable_fixture_fallback(monkeypatch):
+    monkeypatch.setattr(settings, "use_fixtures", False)
+    monkeypatch.setattr(settings, "live_brokercheck", False)
+    assert await brokercheck.lookup("Brightwater Capital Advisors", "DEMO-482619") == (
+        None, False
+    )
+
+
 async def test_live_error_is_unknown(respx_mock, monkeypatch):
     monkeypatch.setattr(settings, "use_fixtures", False)
     monkeypatch.setattr(settings, "live_brokercheck", True)

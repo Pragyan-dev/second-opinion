@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
@@ -18,7 +17,7 @@ export default function Home() {
     e.preventDefault();
     if (busy) return;
     const s = symbol.trim().toUpperCase();
-    if (!SYMBOL_RE.test(s)) { setError("Enter a stock symbol of 1 to 12 characters, such as BRWT"); return; }
+    if (!SYMBOL_RE.test(s)) { setError("Enter a stock symbol of 1 to 12 characters, such as TROW"); return; }
     setBusy(true); setError("");
     try {
       const r = await api<{ research_id: string }>("/v1/stock/research", { symbol: s, source_url: null });
@@ -30,7 +29,7 @@ export default function Home() {
 
   return (
     <>
-      <section className={styles.hero} aria-labelledby="waiting-title">
+      <section id="capture" className={styles.hero} aria-labelledby="waiting-title">
         <div>
           <p className={styles.status}><span className={styles.dot} aria-hidden="true" />Waiting for a capture</p>
           <h1 id="waiting-title" className={styles.pitch}>No report yet.</h1>
@@ -57,16 +56,9 @@ export default function Home() {
         </li>
       </ol>
 
-      <details className={styles.demo}>
-        <summary>Try without the extension</summary>
-        <div className={styles.demoBody}>
-          <div>
-            <h2>Demo reports</h2>
-            <p><Link href="/fraud/real-demo">T. Rowe Price post (low)</Link></p>
-            <p><Link href="/fraud/clone-demo">Brightwater email (high)</Link></p>
-            <p><Link href="/stock/demo">BRWT stock report</Link></p>
-            <p><Link href="/checkout/demo">Order preview</Link></p>
-          </div>
+      <section id="stock-research" className={styles.research}>
+          <h2>Research a stock</h2>
+          <p className="muted">Enter a symbol to request a new report from live sources.</p>
           <form onSubmit={research} className={styles.symbolForm} noValidate>
             <label htmlFor="research-symbol">Research a symbol</label>
             <div className={styles.symbolRow}>
@@ -76,8 +68,7 @@ export default function Home() {
             </div>
             {error && <p id="research-error" role="alert" className={styles.err}>{error}</p>}
           </form>
-        </div>
-      </details>
+      </section>
       <p className="muted" style={{ marginTop: 40 }}>Second Opinion previews orders but can&apos;t place them.</p>
     </>
   );

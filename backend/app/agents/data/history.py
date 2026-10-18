@@ -1,6 +1,6 @@
 """History data agent. Owner D."""
 
-import os
+from app.config import settings
 
 try:
     from app.contracts import AgentResult
@@ -78,8 +78,7 @@ class HistoryAgent:
     name = "history"
 
     async def run(self, ctx: dict) -> AgentResult:
-        use_fixtures = os.getenv("USE_FIXTURES", "1") != "0"
-        if use_fixtures:
+        if settings.use_fixture(self.name):
             from app.config import fixture
             return AgentResult.model_validate(fixture("stock_demo.json")["sections"][self.name])
 

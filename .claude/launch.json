@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "reef",
+      "runtimeExecutable": "/Users/pragyan/Downloads/hackathon/second-opinion/.venv/bin/python",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-pragyan-Downloads-hackathon-second-opinion/bab1c5e2-bc93-4f06-858f-2e9533c0f5a7/scratchpad/reef-wt/reef/server.py"],
+      "port": 5600
+    }
+  ]
+}
