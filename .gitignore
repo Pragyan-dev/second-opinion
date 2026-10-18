@@ -20,3 +20,4 @@ out/
 *.log
 *.md
 !README.md
+.claude/

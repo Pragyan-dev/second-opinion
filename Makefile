@@ -1,4 +1,4 @@
-PYTHON ?= python3.11
+PYTHON ?= python3
 VENV := .venv/bin
 .PHONY: setup dev mock web demo test types demo-check
 
@@ -20,7 +20,7 @@ demo:
 	cd demo-site && ../$(VENV)/python -m http.server 5500 --bind 127.0.0.1
 
 test:
-	$(VENV)/pytest backend/tests
+	$(VENV)/pytest backend/tests,
 	$(VENV)/ruff check --config backend/pyproject.toml backend scripts
 
 types:
