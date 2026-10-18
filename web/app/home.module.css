@@ -1,0 +1,16 @@
+.hero { display: grid; gap: 32px; grid-template-columns: 1fr; align-items: center; padding-bottom: 40px; }
+@media (min-width: 1024px) { .hero { grid-template-columns: 1fr 240px; } }
+.pitch { font-size: var(--s5); line-height: 1.12; max-width: 22ch; }
+@media (min-width: 1024px) { .pitch { font-size: var(--s6); max-width: 24ch; } }
+.ornament { display: none; }
+@media (min-width: 1024px) { .ornament { display: block; } }
+
+.acts { counter-reset: act; display: grid; gap: 0; grid-template-columns: 1fr; border-top: 1px solid var(--ink); }
+@media (min-width: 1024px) { .acts { grid-template-columns: repeat(3, 1fr); gap: 32px; } }
+.acts > li { counter-increment: act; padding: 24px 0; border-bottom: 1px solid var(--engrave); display: grid; gap: 8px; align-content: start; }
+.acts > li h2::before { content: counter(act) ". "; font-variant-numeric: lining-nums; }
+.symbolForm { display: grid; gap: 6px; margin-top: 12px; }
+.symbolForm label { font-weight: 600; font-size: var(--s0); }
+.symbolRow { display: flex; gap: 8px; }
+.symbolRow input { flex: 1; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ink); border-radius: 2px; background: var(--paper-raised); color: var(--ink); font: inherit; }
+.err { color: var(--seal); font-weight: 600; font-size: var(--s0); }
