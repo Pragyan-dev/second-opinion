@@ -7,3 +7,52 @@ h1,h2 { font-family: Georgia, serif; font-weight: 400; line-height: 1.08; letter
 .button { display: inline-block; margin-top: 20px; padding: 14px 23px; background: #214d4e; color: white; border-radius: 3px; text-decoration: none; }.hero aside { background: #214d4e; color: #faf7eb; padding: 36px; border-radius: 3px; }.hero aside strong { font: 86px Georgia, serif; }.hero aside hr { border: 0; border-top: 1px solid #65837b; margin: 32px 0; }small { font-size: 11px; }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }.grid article { border-top: 1px solid #9caea4; padding: 20px 0; }.grid span { color: #71887e; }.grid h3 { font-size: 19px; }.grid p { color: #57706d; }.contact { display: grid; grid-template-columns: 1.5fr 1fr; gap: 60px; background: #e8ecdf; margin: 20px 36px 60px; padding: 40px; }.contact > p { align-self: center; }footer { padding: 30px; border-top: 1px solid #d4d9cf; font-size: 11px; text-align: center; }
 @media(max-width:700px) { .hero,.grid,.contact { grid-template-columns: 1fr; gap: 24px; } header { flex-wrap: wrap; } section { padding: 40px 24px; }.contact { margin: 20px; padding: 24px; } }
+
+/* Deliberately suspicious promotional cues for the fictional fraud-check demo. */
+.demo { background: #f1dca7; color: #352718; font-weight: 750; }
+.allocation-alert { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 12px 24px; background: #8d292b; color: #fff4de; font-size: 12px; }
+.allocation-alert strong { letter-spacing: .1em; }
+.allocation-alert small { color: #ffdfd3; }
+.alert-dot { width: 7px; height: 7px; border-radius: 50%; background: #ffd76f; box-shadow: 0 0 0 4px #ffd76f26; }
+.hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); padding-top: 50px; gap: 56px; }
+.hero h1 { font-size: clamp(42px, 5vw, 66px); }
+.hero .eyebrow { line-height: 1.8; }
+.vip-label { display: inline-block; margin-right: 10px; padding: 3px 8px; background: #e8bc58; color: #3b2c14; letter-spacing: .1em; }
+.return-pitch { display: flex; align-items: center; gap: 20px; margin: 28px 0 6px; border-left: 3px solid #bc8933; padding-left: 18px; }
+.return-pitch > strong { color: #a1352c; font: 64px/1 Georgia, serif; }
+.return-pitch p { margin: 0; font-weight: 750; }
+.return-pitch small { color: #64716a; }
+.hero .button { background: #c3983f; color: #241c0e; font-weight: 750; box-shadow: 0 4px 0 #98712a; transition: background .15s; }
+.hero .button:hover { background: #dfb454; }
+.allocation-note { max-width: 410px; margin-top: 20px; color: #8d292b; font-size: 12px; }
+.deal-timer { max-width: 490px; margin-top: 26px; padding: 20px; border: 1px solid #d8ac91; border-left: 4px solid #a1352c; border-radius: 4px; background: #fff0e5; }
+.timer-heading { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; color: #8d292b; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.timer-heading .alert-dot { flex-shrink: 0; background: #a1352c; box-shadow: 0 0 0 4px #a1352c14; }
+.timer-digits { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr); align-items: start; gap: 8px; width: min(100%, 290px); }
+.timer-digits > span { display: grid; gap: 5px; min-width: 0; text-align: center; }
+.timer-digits b { display: block; padding: 4px 8px; border-radius: 3px; background: #70272a; color: #fff4df; font: 700 36px/1.4 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.timer-digits small { color: #784a3f; font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.timer-digits i { color: #8d292b; font: normal 30px/1.9 ui-monospace, monospace; }
+.timer-message { margin: 14px 0 12px; color: #81342d; font-size: 12px; line-height: 1.6; }
+.timer-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 16px; border-top: 1px solid #e8cbb9; padding-top: 10px; }
+.timer-footer small { color: #765448; font-size: 10px; }
+.timer-footer button { padding: 0; border: 0; background: transparent; color: #713d32; font: inherit; font-size: 10px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.deal-timer.is-urgent { border-color: #a1352c; background: #ffe4d9; }
+.deal-timer.is-expired { border-color: #b8b9aa; background: #edeee6; }
+.is-expired .timer-digits b { background: #5c625b; }
+.is-expired .timer-heading,.is-expired .timer-message { color: #4e574e; }
+@media(max-width:400px) { .deal-timer { padding: 16px; } .timer-digits b { padding: 4px 6px; font-size: 28px; } .timer-digits i { font-size: 24px; } }
+.hero .endorsement { overflow: hidden; align-self: stretch; padding: 0; background: #172b29; color: #fff9e9; border: 1px solid #bd984e; border-radius: 6px; box-shadow: 0 15px 35px #1836301a; }
+.endorsement-label { margin: 0; padding: 10px 16px; background: #8d292b; color: #fff3e1; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-align: center; }
+.endorsement figure { position: relative; margin: 0; }
+.endorsement img { display: block; width: 100%; height: 275px; object-fit: cover; object-position: center 26%; }
+.endorsement figcaption { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 14px 9px; background: linear-gradient(transparent, #0b1917e8); color: white; font-size: 10px; letter-spacing: .04em; }
+.endorsement-copy { padding: 22px 28px 25px; }
+.endorsement-copy .eyebrow { margin: 0 0 9px; color: #e4c47d; font-size: 10px; }
+.endorsement h2 { margin: 0; color: #ffe0a0; font-size: clamp(32px, 4vw, 47px); line-height: 1.08; }
+.endorsement-disclaimer { margin: 15px 0 0; color: #e1e8df; font-size: 12px; line-height: 1.6; }
+.photo-credit { max-width: 740px; margin: 10px auto 0; color: #5a6a63; }
+a:focus-visible,button:focus-visible { outline: 3px solid #a1352c; outline-offset: 5px; }
+@media(max-width:850px) and (min-width:701px) { .hero { gap: 26px; } .hero h1 { font-size: 42px; } .return-pitch { gap: 12px; } .return-pitch > strong { font-size: 50px; } .endorsement-copy { padding: 22px; } }
+@media(max-width:700px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 32px; padding-top: 35px; } .allocation-alert { gap: 6px 12px; } .allocation-alert small { width: 100%; text-align: center; } .hero .endorsement { width: 100%; max-width: 440px; justify-self: center; } .endorsement img { height: 300px; } .hero .eyebrow { font-size: 10px; letter-spacing: .12em; } .return-pitch { gap: 14px; } .return-pitch > strong { font-size: 56px; } }
+@media(prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } .hero .button { transition: none; } }
