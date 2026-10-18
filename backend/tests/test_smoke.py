@@ -231,6 +231,7 @@ def test_cache_rejects_stale_copy_unless_offline(monkeypatch, tmp_path):
 
     monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
     monkeypatch.delenv("DATA_OFFLINE", raising=False)
+    monkeypatch.delenv("DATA_CACHE_FIRST", raising=False)
 
     async def fail():
         raise RuntimeError("down")
@@ -249,6 +250,41 @@ def test_cache_rejects_stale_copy_unless_offline(monkeypatch, tmp_path):
     offline = asyncio.run(_common.run_cached("quote", fail))
     assert offline["price"] == 1
     assert "DATA_OFFLINE" in offline["error"]
+
+
+def test_cache_first_uses_fresh_copy_without_live_lookup(monkeypatch, tmp_path):
+    from app.agents.data import _common
+
+    monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
+    monkeypatch.setenv("DATA_CACHE_FIRST", "1")
+    calls = 0
+
+    async def fetch():
+        nonlocal calls
+        calls += 1
+        return {"price": 2}
+
+    _common._save_cache("quote", {"price": 1, "as_of": time.time()})
+    result = asyncio.run(_common.run_cached("quote", fetch))
+
+    assert result["price"] == 1
+    assert "DATA_CACHE_FIRST" in result["error"]
+    assert calls == 0
+
+
+def test_cache_first_fetches_when_copy_is_stale(monkeypatch, tmp_path):
+    from app.agents.data import _common
+
+    monkeypatch.setattr(_common, "_CACHE_DIR", tmp_path)
+    monkeypatch.setenv("DATA_CACHE_FIRST", "1")
+
+    async def fetch():
+        return {"price": 2}
+
+    _common._save_cache("quote", {"price": 1, "as_of": time.time() - 25 * 60 * 60})
+    result = asyncio.run(_common.run_cached("quote", fetch))
+
+    assert result["price"] == 2
 
 
 def test_preview_route(client):

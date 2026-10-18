@@ -33,6 +33,10 @@ def _offline() -> bool:
     return os.getenv("DATA_OFFLINE", "0") == "1"
 
 
+def _cache_first() -> bool:
+    return os.getenv("DATA_CACHE_FIRST", "0") == "1"
+
+
 def _is_fresh(cached: dict) -> bool:
     as_of = cached.get("as_of")
     if isinstance(as_of, bool) or not isinstance(as_of, (int, float)):
@@ -54,6 +58,7 @@ async def run_cached(
     """Run *fetch* with a timeout; fall back to cache on failure.
 
     With DATA_OFFLINE=1, skips live calls and always returns the cached copy.
+    With DATA_CACHE_FIRST=1, returns a fresh cached copy before live lookup.
     """
     cached = _load_cache(key)
 
@@ -62,6 +67,10 @@ async def run_cached(
             cached["error"] = "DATA_OFFLINE – cached copy used"
             return cached
         return {"error": "DATA_OFFLINE – no cache available"}
+
+    if cached and _cache_first() and _is_fresh(cached):
+        cached["error"] = "DATA_CACHE_FIRST – cached copy used"
+        return cached
 
     import asyncio
 
