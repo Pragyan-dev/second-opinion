@@ -1,7 +1,8 @@
 """Job lifecycle and the fraud and stock pipelines. Owner B.
 
 Fraud runs as a dependency graph of stages over one shared ctx dict:
-extract -> crawl -> [brokercheck, rdap, jev] -> contact_match -> scoring -> explainer.
+[extract, phishing] -> crawl -> [brokercheck, rdap, jev, live_view] -> contact_match -> scoring
+-> explainer.
 Stock runs every STOCK_AGENTS entry in parallel, then the Explainer writes the summary.
 Every step's contribution is saved as soon as it finishes, so GET returns partial results.
 """

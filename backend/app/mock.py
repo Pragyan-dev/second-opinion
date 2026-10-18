@@ -6,9 +6,11 @@ from fastapi import Depends, FastAPI, HTTPException
 
 from app.config import configure_cors, fixture
 from app.contracts import Capture, FraudReport, OrderPreview, StockReport
+from app.fraud import phishing
 from app.fraud.extract import fixture_name
 from app.main import (
     StockRequest,
+    check_capture_size,
     health,
     live_preview,
     live_status,
@@ -42,6 +44,7 @@ def snapshot(id: str, kind: str):
     if kind == "fraud":
         data["page_url"] = job.get("url", data["page_url"])
         data["source_type"] = job.get("source_type", data["source_type"])
+        data["phishing"] = job.get("phishing")
         total = len(data["signals"])
         data["signals"] = data["signals"][: job["calls"]]
         if job["calls"] <= total:
@@ -62,14 +65,16 @@ app.get("/health")(health)
 
 @app.post("/v1/fraud/analyze", status_code=202)
 def analyze(body: Capture):
-    if len(body.text) > 20000:
-        raise HTTPException(422, "Captured text must be at most 20,000 characters")
+    check_capture_size(body)
     id = uuid4().hex
+    # Pattern checks are pure, so the mock reports the real reasons for this email.
+    found = phishing.check(body).model_dump(mode="json") if phishing.is_email(body) else None
     jobs[f"fraud:{id}"] = {
         "fixture": fixture_name(body.model_dump()),
         "calls": 0,
         "url": body.url,
         "source_type": body.source_type,
+        "phishing": found,
     }
     return {"report_id": id, "status": "pending"}
 

@@ -11,7 +11,7 @@ import re
 from pydantic import BaseModel
 
 from app.config import fixture, settings
-from app.contracts import AgentResult, Article, ProCon, Signal, Source
+from app.contracts import AgentResult, Article, PhishingCheck, ProCon, Signal, Source
 from app.core import llm, orchestrator
 from app.core.steps import Deadline, case_fixture
 
@@ -36,8 +36,9 @@ DEFAULT_QUESTIONS = [
 FRAUD_SYSTEM = (
     "You explain the results of an automated check on an investment message for a "
     "non-expert reader. Write 2 to 3 short sentences: what was checked and what did not match. "
-    "For any mismatch, say it 'does not match the official record'. Never say that anything is "
-    "a fraud or a scam. Never tell the reader to buy, sell or invest. Use only the facts given."
+    "For any mismatch, say it 'does not match the official record'. When phishing signs are "
+    "listed, name the strongest ones and say the email could be phishing. Never say that anything "
+    "is a fraud or a scam. Never tell the reader to buy, sell or invest. Use only the facts given."
 )
 PROS_CONS_SYSTEM = (
     "You list neutral points about a stock from gathered research for a non-expert reader. "
@@ -124,23 +125,32 @@ def articles_of(sections: dict[str, AgentResult]) -> list[Article]:
     return articles
 
 
-def fraud_template(signals: list[Signal]) -> str:
+def fraud_template(signals: list[Signal], phishing: PhishingCheck | None = None) -> str:
     mismatched = [
         CONTACT_LABELS[s.id] for s in signals if s.id in CONTACT_LABELS and s.check == "fail"
     ]
     checked = "We compared the message and the linked website with the official record."
     if not mismatched:
-        return f"{checked} No checked detail differs from the official record."
-    parts = ", ".join(mismatched[:-1]) + (" and " if len(mismatched) > 1 else "") + mismatched[-1]
-    verb = "does" if len(mismatched) == 1 else "do"
-    return (
-        f"{checked} The {parts} {verb} not match the official record. Confirm the sender "
-        "using the contact details in the official record."
-    )
+        text = f"{checked} No checked detail differs from the official record."
+    else:
+        parts = ", ".join(mismatched[:-1]) + (" and " if len(mismatched) > 1 else "")
+        verb = "does" if len(mismatched) == 1 else "do"
+        text = (
+            f"{checked} The {parts}{mismatched[-1]} {verb} not match the official record. "
+            "Confirm the sender using the contact details in the official record."
+        )
+    if phishing and phishing.reasons:
+        text = f"{phishing.summary} {text}"
+    return text
 
 
 def facts(ctx: dict) -> str:
     lines = [f"- [{s.check}] {s.label}: {s.detail}" for s in ctx["signals"]]
+    phishing = ctx.get("phishing")
+    if phishing:
+        lines += [f"- [phishing sign] {r.label}: {r.detail}" for r in phishing.reasons]
+        if phishing.link_requested:
+            lines.append(f"- Link the email asks the reader to open: {phishing.link_requested}")
     contact = ctx.get("official_contact")
     if contact:
         lines.append(f"- Official record: {contact.firm} ({contact.source.title})")
@@ -212,7 +222,7 @@ class ExplainerStep:
             ctx.get("errors"),
             "explainer_text",
         )
-        ctx["explanation"] = text or fraud_template(ctx["signals"])
+        ctx["explanation"] = text or fraud_template(ctx["signals"], ctx.get("phishing"))
         if tickers:
             stock = await orchestrator.wait_for_sections(
                 ctx["stock_research_id"], deadline.left(reserve=5)

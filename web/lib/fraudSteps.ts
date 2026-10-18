@@ -13,6 +13,7 @@ export function fraudSteps(r: FraudReport | undefined): Step[] {
   const has = (...x: string[]) => x.some(i => ids.has(i));
   const defs = [
     { id: "read", label: "Read the message", done: Object.keys(r?.entities ?? {}).length > 0, err: [] as string[] },
+    ...(r?.source_type === "email" ? [{ id: "phishing", label: "Checked for phishing", done: !!r.phishing, err: ["phishing_error"] }] : []),
     { id: "crawl", label: "Followed the link", done: !!r?.site_visit, err: ["crawl_error", "site_unreachable"] },
     { id: "registry", label: "Checked the registry", done: has("firm_record", "firm_not_found") || !!r?.official_contact, err: ["brokercheck_error"] },
     { id: "domain", label: "Checked domain age", done: has("domain_age") || r?.site_visit?.domain_age_days != null, err: ["rdap_error"] },

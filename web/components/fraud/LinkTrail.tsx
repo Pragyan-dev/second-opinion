@@ -6,7 +6,7 @@ import styles from "./fraud.module.css";
 
 // Addresses from the checked site are shown as text, never as links: the agent visited them so
 // the person doesn't have to. Copying is allowed for people who want to report the site.
-function PlainAddress({ url }: { url: string }) {
+export function PlainAddress({ url }: { url: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <span className={styles.plainAddress}>

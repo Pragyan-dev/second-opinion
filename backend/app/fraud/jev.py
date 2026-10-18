@@ -14,6 +14,7 @@ from app.config import settings
 from app.contracts import JevScore, Signal, Source
 from app.core import llm
 from app.core.steps import case_fixture
+from app.fraud.extract import email_content
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ class JevStep:
 
     async def run(self, ctx: dict) -> None:
         capture = ctx["capture"]
-        captured = "\n".join(p for p in (capture.title, capture.text) if p)
+        captured = "\n".join(p for p in email_content(capture) if p)
         crawled = ctx.get("crawl_text", "")
         if settings.use_fixture(self.name):
             scores = [JevScore.model_validate(s) for s in case_fixture(ctx)["jev_scores"]]

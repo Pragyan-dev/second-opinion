@@ -16,9 +16,10 @@ backend/app/
   purchase/          guarded read/review client, preview, confirmed funding stub
 backend/tests/       route, fixture, sequencing, and no-trade checks
 contracts/fixtures/  two fraud cases, stock data, preview, captures, cached-record placeholders
-extension/           detectors/, popup/, generated lib/contracts.d.ts
+extension/           detectors/ (Gmail, Mailpit, X, stock, website), popup/, generated lib/contracts.d.ts
 web/app/             fraud/[id], stock/[id], checkout/[id]
 demo-site/           fictional Brightwater landing page
+                     published at https://chirumer.github.io/temporary_hackathon_fake_site/
 scripts/             schema/types, demo check, offline persona stub
 ```
 
@@ -42,6 +43,44 @@ The menu’s **Screen Reader** tile reads visible page text (or selected text) a
 | B | `make dev`; work in `core/`, `fraud/`, LLM agents, contracts, and route wiring. Docs: `http://localhost:8000/docs`. |
 | C | `make mock`, then `NEXT_PUBLIC_API_BASE=http://localhost:8001 make web`; open `http://localhost:3000`. |
 | D | `make dev`; run `.venv/bin/python scripts/seed_nessie.py` for the offline persona stub; work in data agents and `purchase/`. |
+
+## Verify Authenticity in Gmail and Mailpit
+
+The extension adds a **Verify Authenticity** button to an open email: next to the subject in Gmail, and as a tab beside Preview, Text and Headers in [Mailpit](https://mailpit.axllent.org), a local test inbox. Clicking the button sends the email to `POST /v1/fraud/analyze` and opens the report at `http://localhost:3000/fraud/<id>`, next to the email's tab. The email's subject goes in `email_title`, and its plain-text body goes in `email_body`, with each link written as `text <url>`. Sender, links, `mailto:` addresses and `tel:` numbers are sent too.
+
+Before you click anything, a local pattern check runs in the page (`extension/lib/shady.js`). If the email looks suspicious, for example because it promises guaranteed returns, pressures you to act fast, asks for credentials or links to a domain that looks like the sender's, the button shows a red **!**. Hover over it to see the reasons. This check makes no network requests: nothing is sent until you click.
+
+For emails, the report starts with **Why this email could be phishing**. This section lists each reason with the email's own words quoted and shows the link the email asks you to open, as plain text only. The agent then checks that link the same way it checks any link: a site visit, record and domain checks, and the live view of the agent's browser.
+
+Gmail is read only when exactly one message body is open. In Mailpit, the open message is read from Mailpit's own API on `localhost:8025` or `127.0.0.1:8025`, and the message list is never read. Mailpit runs under a `--webroot` path are also supported.
+
+### Set up Mailpit
+
+1. Install and start Mailpit. It serves the UI at `http://localhost:8025` and SMTP at `localhost:1025`.
+
+   ```sh
+   brew install mailpit && mailpit
+   # or, with Docker:
+   docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
+   ```
+
+2. Start the API and dashboard with `make dev` and `make web`. For the mock API, run `make mock` and change `API_BASE` in `extension/config.js` to `http://localhost:8001`. The mock returns the pattern-based phishing reasons for the email you send it.
+3. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and select `extension/`. After you change the extension, click its reload button and reload the Mailpit tab.
+4. Send a test email. Any SMTP client pointed at `localhost:1025` works; Mailpit's send API is the quickest:
+
+   ```sh
+   curl -X POST http://localhost:8025/api/v1/send -H 'Content-Type: application/json' -d '{
+     "From": {"Name": "Michael Myers", "Email": "michael.myers@brightwater-capital.example"},
+     "To": [{"Name": "Ryan", "Email": "ryan@example.com"}],
+     "Subject": "Exclusive pre-IPO allocation",
+     "Text": "Dear Ryan,\n\nWe have secured a limited allocation in a pre-IPO stock with a guaranteed 18.5% return. Reply within 24 hours to reserve your place: https://chirumer.github.io/temporary_hackathon_fake_site/\n\nMichael Myers\nBrightwater Capital Advisors",
+     "HTML": "<p>Dear Ryan,</p><p>We have secured a limited allocation in a pre-IPO stock with a <b>guaranteed 18.5% return</b>. Reply within 24 hours to <a href=\"https://chirumer.github.io/temporary_hackathon_fake_site/\">reserve your place</a>.</p><p>Michael Myers<br>Brightwater Capital Advisors</p>"
+   }'
+   ```
+
+5. Open `http://localhost:8025` and click the email. The **Verify Authenticity** tab shows a **!** for this example. Click it, and the report opens in a new tab. If the request fails, the tab reads **Retry Verify Authenticity**; hover over it to see the error.
+
+In fixture mode (`USE_FIXTURES=1`), the site visit and the agent's browser show the bundled Brightwater site rather than the link in the email. In live mode, the link the email asks you to open is the one visited. The live view needs Playwright (`.venv/bin/pip install playwright && .venv/bin/playwright install chromium`). Fictional `.example` links only resolve through `CRAWL_HOST_ALIASES`. For example, `brightwater-capitals.example=http://127.0.0.1:5500` serves the demo site from `make demo` under that name.
 
 Next.js 14 is retained as requested and has known security advisories requiring a newer major version to fully resolve. Web and API commands bind to loopback. Upgrade before internet deployment. PostCSS uses a patched compatible 8.x override.
 

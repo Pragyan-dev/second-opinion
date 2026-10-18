@@ -83,10 +83,14 @@ class Aliases:
         return urlunsplit((scheme, host, parts.path or "/", parts.query, ""))
 
 
-def pick_start_url(capture: Capture) -> str | None:
+def pick_start_url(capture: Capture, found: list[str] = ()) -> str | None:
+    """The page to visit: the website itself, or the first followable link.
+
+    `found` adds links extracted from the text, for messages whose links are not anchors.
+    """
     if capture.source_type == "website":
         return capture.url
-    for link in capture.links:
+    for link in dict.fromkeys([*capture.links, *found]):
         if urlsplit(link).scheme not in ("http", "https"):
             continue
         if registered_domain(link) in SKIP_DOMAINS:
@@ -309,7 +313,10 @@ class CrawlStep:
             ctx["redirect_chain"] = [ctx["site_visit"].start_url, ctx["site_visit"].final_url]
             ctx["crawl_ok"] = True
         else:
-            start = pick_start_url(ctx["capture"])
+            # An email that asks the reader to open a link is checked at that link.
+            start = ctx.get("link_requested") or pick_start_url(
+                ctx["capture"], ctx.get("urls", [])
+            )
             if start is None:
                 return
             key = f"crawl:{start}"

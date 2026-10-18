@@ -12,12 +12,14 @@ from app.fraud.crawler import CrawlStep
 from app.fraud.extract import ExtractStep
 from app.fraud.jev import JevStep
 from app.fraud.live_browser import LiveBrowseStep
+from app.fraud.phishing import PhishingStep
 from app.fraud.rdap import RdapStep
 from app.fraud.scoring import ScoringStep
 
 # Each inner list runs in parallel; lists run in order.
 FRAUD_STAGES = [
-    [ExtractStep()],
+    # PhishingStep picks the link the email asks the reader to open, so it runs before the crawl.
+    [ExtractStep(), PhishingStep()],
     [CrawlStep()],
     [BrokercheckStep(), RdapStep(), JevStep(), LiveBrowseStep()],
     [ContactMatchStep()],

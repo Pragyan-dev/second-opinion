@@ -41,10 +41,16 @@ def health():
     return {"ok": True}
 
 
-@app.post("/v1/fraud/analyze", status_code=202)
-async def analyze(body: Capture):
+def check_capture_size(body: Capture):
     if len(body.text) > 20000:
         raise HTTPException(422, "Captured text must be at most 20,000 characters")
+    if body.email_body is not None and len(body.email_body) > 20000:
+        raise HTTPException(422, "Email body must be at most 20,000 characters")
+
+
+@app.post("/v1/fraud/analyze", status_code=202)
+async def analyze(body: Capture):
+    check_capture_size(body)
     return {"report_id": await orchestrator.start_fraud_job(body), "status": "pending"}
 
 

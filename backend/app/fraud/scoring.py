@@ -1,9 +1,12 @@
 """Fraud likelihood scoring. A pure function of ctx, no I/O. Owner B."""
 
-from app.contracts import JevScore, Signal
+from app.contracts import JevScore, PhishingCheck, Signal
 
 # contact_match is the single combined id used by the v2 demo fixtures.
 CONTACT_IDS = {"phone_match", "email_domain_match", "website_match", "contact_match"}
+# Points per unit of phishing-reason weight (1 to 3 each), capped.
+PHISHING_POINTS = 6
+PHISHING_CAP = 36
 
 
 def band_for(likelihood: int) -> str:
@@ -12,13 +15,20 @@ def band_for(likelihood: int) -> str:
 
 def score(ctx: dict) -> tuple[int | None, str, str]:
     """Return (fraud_likelihood, band, band_reason)."""
-    if not ctx.get("entities", {}).get("firms") and not ctx.get("crawl_ok"):
+    phishing: PhishingCheck | None = ctx.get("phishing")
+    # Asking to open a link is not by itself a sign; it only decides which link is checked.
+    signs = [r for r in phishing.reasons if r.id != "link_request"] if phishing else []
+    if not ctx.get("entities", {}).get("firms") and not ctx.get("crawl_ok") and not signs:
         return None, "cant_tell", "No firm was named and no website could be visited."
 
     signals: list[Signal] = ctx.get("signals", [])
     jev: list[JevScore] = ctx.get("jev_scores", [])
     mean = sum(s.confidence for s in jev) / len(jev) if jev else 0.0
     contributions = [(mean * 50, f"pressure language scored {mean:.2f} on average")]
+    if signs:
+        points = min(PHISHING_CAP, PHISHING_POINTS * sum(r.weight for r in signs))
+        noun = "sign" if len(signs) == 1 else "signs"
+        contributions.append((points, f"{len(signs)} common phishing {noun} in the email"))
 
     def has(id: str, check: str) -> bool:
         return any(s.id == id and s.check == check for s in signals)

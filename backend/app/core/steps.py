@@ -9,6 +9,7 @@ from app.contracts import Signal
 
 STEP_LABELS = {
     "extract": "Entity extraction",
+    "phishing": "Phishing check",
     "crawl": "Website visit",
     "brokercheck": "Official record lookup",
     "rdap": "Domain age lookup",

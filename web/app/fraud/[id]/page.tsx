@@ -18,6 +18,7 @@ import { JevChart } from "@/components/fraud/JevChart";
 import { LikelihoodSeal } from "@/components/fraud/LikelihoodSeal";
 import { LinkTrail } from "@/components/fraud/LinkTrail";
 import { LiveView } from "@/components/fraud/LiveView";
+import { PhishingPanel } from "@/components/fraud/PhishingPanel";
 import { SignalLedger } from "@/components/fraud/SignalLedger";
 import styles from "@/components/fraud/fraud.module.css";
 
@@ -49,7 +50,9 @@ export default function FraudPage({ params }: { params: { id: string } }) {
     <CheckedSiteContext.Provider value={checkedHosts(report?.site_visit)}>
       <div className={styles.heroTop}>
         <h1 style={{ maxWidth: "20ch" }}>
-          {report ? <>Checked {sourceTypeNoun(report.source_type)} from {hostname(report.page_url) || "an unknown page"}</> : "Checking…"}
+          {!report ? "Checking…"
+            : report.phishing ? <>Checked the email &ldquo;{report.phishing.email_title || "(no subject)"}&rdquo;</>
+            : <>Checked {sourceTypeNoun(report.source_type)} from {hostname(report.page_url) || "an unknown page"}</>}
         </h1>
         <StatusRail steps={steps.map(s => ({ label: s.label, state: s.state, note: s.note }))} finished={finished} />
         {report?.page_url && <a className={styles.pageLink} href={report.page_url} target="_blank" rel="noreferrer">Open the page we checked<span className="sr-only"> (opens in a new tab)</span></a>}
@@ -62,6 +65,8 @@ export default function FraudPage({ params }: { params: { id: string } }) {
           : <Skeleton width={360} height={360} label="Likelihood loading" />}
         {report ? <BandStatement report={report} /> : <Skeleton height={120} />}
       </section>
+
+      {report?.phishing && <PhishingPanel phishing={report.phishing} />}
 
       {report && <LiveView reportId={report.report_id} running={running} />}
 
