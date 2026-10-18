@@ -14,3 +14,15 @@
 .symbolRow { display: flex; gap: 8px; }
 .symbolRow input { flex: 1; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ink); border-radius: 2px; background: var(--paper-raised); color: var(--ink); font: inherit; }
 .err { color: var(--seal); font-weight: 600; font-size: var(--s0); }
+
+.status { display: inline-flex; align-items: center; gap: 8px; font-size: var(--s0); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); margin-bottom: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--seal); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.lead { max-width: 52ch; margin-top: 16px; font-size: var(--s1); }
+
+.demo { margin-top: 32px; border-top: 1px solid var(--engrave); padding-top: 16px; }
+.demo summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.demoBody { display: grid; gap: 24px; grid-template-columns: 1fr; padding-top: 8px; }
+@media (min-width: 1024px) { .demoBody { grid-template-columns: 1fr 1fr; } }
+.demoBody h2 { font-size: var(--s1); margin-bottom: 8px; }
