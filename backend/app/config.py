@@ -49,6 +49,11 @@ class Settings:
         self.crawl_host_aliases = _aliases(
             os.getenv("CRAWL_HOST_ALIASES", "brightwater-capital.example=http://127.0.0.1:5500")
         )
+        # Watch-only live view of the agent's browser (needs the optional Playwright extra).
+        self.live_view_enabled = os.getenv("LIVE_VIEW_ENABLED", "1") == "1"
+        self.live_view_max_pages = int(os.getenv("LIVE_VIEW_MAX_PAGES", "5"))
+        self.live_view_seconds_per_page = float(os.getenv("LIVE_VIEW_SECONDS_PER_PAGE", "6"))
+        self.live_view_timeout_s = float(os.getenv("LIVE_VIEW_TIMEOUT_S", "45"))
         self.live_brokercheck = os.getenv("LIVE_BROKERCHECK", "0") == "1"
         # TODO(B): confirm this endpoint in the BrokerCheck site's browser network tab.
         self.brokercheck_search_url = os.getenv(

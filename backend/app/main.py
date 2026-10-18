@@ -3,6 +3,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import configure_cors
@@ -15,6 +16,7 @@ from app.contracts import (
     StockReport,
 )
 from app.core import orchestrator
+from app.fraud import live_browser
 from app.purchase.nessie import fund, require_human_confirmation
 from app.purchase.preview import preview
 
@@ -52,6 +54,32 @@ async def fraud(id: str):
     if report is None:
         raise HTTPException(404, "Job not found")
     return report
+
+
+NO_STORE = {"Cache-Control": "no-store"}
+
+
+@app.get("/v1/fraud/{id}/live.json")
+async def live_status(id: str):
+    return live_browser.status(id)
+
+
+@app.get("/v1/fraud/{id}/live.mjpg")
+async def live_stream(id: str):
+    stream = live_browser.mjpeg(id)
+    if stream is None:
+        raise HTTPException(404, "No live view for this report")
+    return StreamingResponse(
+        stream, media_type="multipart/x-mixed-replace; boundary=frame", headers=NO_STORE
+    )
+
+
+@app.get("/v1/fraud/{id}/preview.jpg")
+async def live_preview(id: str):
+    path = live_browser.preview_path(id)
+    if path is None:
+        raise HTTPException(404, "No preview for this report")
+    return FileResponse(path, media_type="image/jpeg", headers=NO_STORE)
 
 
 @app.post("/v1/stock/research", status_code=202)

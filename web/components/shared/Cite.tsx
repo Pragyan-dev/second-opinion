@@ -1,7 +1,11 @@
 import type { Source } from "@/lib/contracts";
+import { useIsCheckedSite } from "@/lib/checkedSite";
 
 export function Cite({ source }: { source?: Source | null }) {
+  const onCheckedSite = useIsCheckedSite(source?.url);
   if (!source?.url) return <span className="citeNone">No source given</span>;
+  // The site under suspicion is never linked; the agent's browser shows it instead.
+  if (onCheckedSite) return <span className="citeNone" title={source.url}>seen by the agent</span>;
   return (
     <span className="cite">
       <a href={source.url} target="_blank" rel="noreferrer" title={source.title}>
