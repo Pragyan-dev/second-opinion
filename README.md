@@ -63,7 +63,7 @@ Funding requires the literal JSON value `human_confirmed: true`; false, missing,
 2. **Research:** start BRWT research from the Robinhood research chip or view `/stock/demo`. All five sections, dated articles with relevance scores, pros, cons, and questions use fixtures. The article controls sort by newest date or relevance.
 3. **Review:** open `/checkout/demo`, adjust shares, inspect the simulated preview, and explicitly click Approve transfer to create a mock funding ID. The order button stays disabled. **No order has been placed.**
 
-The extension reads Gmail only when one message body is visibly open; it never enumerates inbox rows or calls Gmail APIs. X capture is scoped to the selected status post. Stock-page URL changes re-detect the symbol and refresh the research chip. Generic fallback is disabled on these supported hosts when their detector refuses the page.
+The extension reads Gmail only when one message body is visibly open; it never enumerates inbox rows or calls Gmail APIs. X capture is scoped to the selected status post. Stock-page URL changes re-detect the symbol and refresh the research chip. The research chip appears on stock quote pages on Robinhood, Yahoo Finance, Google Finance and Google stock searches, MarketWatch, CNBC, Nasdaq, Seeking Alpha, Finviz, TradingView, Bloomberg, Morningstar, Stocktwits, Zacks, Motley Fool, Barron's, Webull and Reuters (`extension/detectors/stock.js`). On any other page, the popup offers research for tickers the page mentions, such as `$AAPL` or `NASDAQ: AAPL`. Generic fallback is disabled on these supported hosts when their detector refuses the page.
 
 ## Validation and merge rules
 

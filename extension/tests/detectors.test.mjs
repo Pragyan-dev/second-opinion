@@ -11,7 +11,7 @@ const root = new URL("../", import.meta.url);
 const website = await import("../detectors/website.js");
 const gmail = await import("../detectors/gmail.js");
 const x = await import("../detectors/x.js");
-const robinhood = await import("../detectors/robinhood.js");
+const stock = await import("../detectors/stock.js");
 
 function page(url, body, title = "Demo") {
   const { document } = parseHTML(`<html><head><title>${title}</title></head><body>${body}</body></html>`);
@@ -78,11 +78,56 @@ test("X feed refuses capture; selected status excludes other posts", () => {
 
 test("stock detector prioritizes the current URL and supports a title fallback", () => {
   page("https://robinhood.com/stocks/BRWT", "<main>Fictional stock</main>", "BRWT Stock Price");
-  assert.deepEqual(robinhood.detect().tickers, ["BRWT"]);
+  assert.deepEqual(stock.detect().tickers, ["BRWT"]);
   globalThis.location = new URL("https://robinhood.com/stocks/DEMO");
-  assert.deepEqual(robinhood.detect().tickers, ["DEMO"]);
+  assert.deepEqual(stock.detect().tickers, ["DEMO"]);
   globalThis.location = new URL("https://robinhood.com/stocks/");
-  assert.deepEqual(robinhood.detect().tickers, ["BRWT"]);
+  assert.deepEqual(stock.detect().tickers, ["BRWT"]);
+});
+
+test("stock quote pages on finance sites give their ticker", () => {
+  const cases = {
+    "https://finance.yahoo.com/quote/AAPL/": "AAPL",
+    "https://finance.yahoo.com/quote/BRK-B/news/": "BRK-B",
+    "https://finance.yahoo.com/quote/RELIANCE.NS/": "RELIANCE.NS",
+    "https://finance.yahoo.com/lookup?p=TSLA": "TSLA",
+    "https://www.google.com/finance/quote/MSFT:NASDAQ": "MSFT",
+    "https://www.google.com/finance/quote/BRK.B:NYSE": "BRK-B",
+    "https://www.google.com/finance/quote/RELIANCE:NSE": "RELIANCE.NS",
+    "https://www.google.com/search?q=%24nvda": "NVDA",
+    "https://www.marketwatch.com/investing/stock/aapl": "AAPL",
+    "https://www.cnbc.com/quotes/TROW": "TROW",
+    "https://www.nasdaq.com/market-activity/stocks/amzn": "AMZN",
+    "https://seekingalpha.com/symbol/GOOG/earnings": "GOOG",
+    "https://finviz.com/quote.ashx?t=AMD&p=d": "AMD",
+    "https://www.tradingview.com/symbols/NASDAQ-AAPL/": "AAPL",
+    "https://www.bloomberg.com/quote/IBM:US": "IBM",
+    "https://www.morningstar.com/stocks/xnas/aapl/quote": "AAPL",
+    "https://stocktwits.com/symbol/PLTR": "PLTR",
+    "https://www.zacks.com/stock/quote/KO": "KO",
+    "https://www.fool.com/quote/nasdaq/aapl/": "AAPL",
+    "https://www.barrons.com/market-data/stocks/dis": "DIS",
+    "https://www.webull.com/quote/nyse-ko": "KO",
+    "https://www.reuters.com/markets/companies/AAPL.OQ/": "AAPL",
+  };
+  page("https://example.com/", "<main>Quote</main>");
+  for (const [url, symbol] of Object.entries(cases)) assert.equal(stock.symbolFor(new URL(url)), symbol, url);
+  for (const url of ["https://finance.yahoo.com/", "https://www.google.com/search?q=weather",
+    "https://www.google.com/maps", "https://www.cnbc.com/world/", "https://example.com/quote/AAPL"]) {
+    assert.equal(stock.symbolFor(new URL(url)), null, url);
+  }
+});
+
+test("a Google stock search reads the ticker from the result card", () => {
+  page("https://www.google.com/search?q=apple+stock", "<div>Apple Inc NASDAQ: AAPL 343.46 USD</div>");
+  assert.deepEqual(stock.detect().tickers, ["AAPL"]);
+  page("https://www.google.com/search?q=apple+pie", "<div>NASDAQ: AAPL mentioned in passing</div>");
+  assert.equal(stock.detect(), null);
+});
+
+test("generic capture also finds exchange-prefixed tickers", () => {
+  page("https://news.example/story", "<p>Shares of Acme (NYSE: ACME) and $BRWT moved.</p>");
+  assert.deepEqual(website.detect().tickers, ["ACME", "BRWT"]);
 });
 
 test("stock chip refreshes on SPA navigation and sends research for the new symbol", async () => {
@@ -125,9 +170,13 @@ test("manifest references real entry points and declares detector modules", () =
   const paths = [manifest.background.service_worker, manifest.action.default_popup,
     ...Object.values(manifest.icons), ...manifest.content_scripts.flatMap(script => script.js)];
   for (const path of paths) assert.ok(existsSync(fileURLToPath(new URL(path, root))), path);
-  assert.deepEqual(manifest.content_scripts[0].matches, [
+  const matches = manifest.content_scripts[0].matches;
+  assert.deepEqual(matches.slice(0, 4), [
     "https://robinhood.com/stocks/*", "https://x.com/*", "https://mail.google.com/*", "http://localhost:5500/*",
   ]);
+  // Every stock site the detector knows gets the content script, and nothing broader.
+  for (const site of stock.SITES) assert.ok(matches.some(m => m.startsWith(`https://${site.host}/`)), site.host);
+  assert.ok(!matches.some(m => m.includes("<all_urls>") || m.startsWith("*://") || m.includes("://*.")));
   assert.deepEqual(manifest.web_accessible_resources[0].resources, ["detectors/*.js", "lib/capture.js", "lib/linkGuard.js"]);
   assert.deepEqual(manifest.host_permissions, ["http://localhost:8000/*", "http://localhost:8001/*"]);
 });
