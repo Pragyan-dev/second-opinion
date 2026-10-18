@@ -1,0 +1,35 @@
+.headerRow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 28px; }
+.symbol { font-family: var(--font-display); font-variation-settings: "opsz" 96; font-size: var(--s6); font-weight: 600; line-height: 1; }
+@media (min-width: 640px) { .symbol { font-size: var(--s7); } }
+.price { font-size: var(--s5); line-height: 1; }
+.tag { border: 1px solid var(--ink); padding: 0 8px; font-size: var(--s0); border-radius: 2px; }
+.summary { font-size: var(--s2); line-height: 1.45; max-width: 68ch; }
+
+.chartHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.returnLine { font-size: var(--s3); font-family: var(--font-display); font-weight: 600; }
+.chartWrap { width: 100%; }
+.chart { display: block; max-width: 100%; touch-action: pan-y; }
+
+.bars { display: grid; gap: 14px; margin: 12px 0; }
+.barRow { display: grid; gap: 4px; }
+.barTrack { height: 22px; border-bottom: 1px solid var(--ink); }
+.barFill { height: 16px; min-width: 2px; border: 1.5px solid var(--ink); background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 4px); }
+.barFill.spy { border-color: var(--engrave); background: repeating-linear-gradient(45deg, var(--engrave) 0 2px, transparent 2px 4px); }
+.big { font-family: var(--font-display); font-size: var(--s3); font-variation-settings: "opsz" 40; }
+
+.facts li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--engrave); }
+.facts li > div { min-width: 0; }
+
+.articleTools { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.article { padding: 16px 0; border-top: 1px solid var(--engrave); display: grid; gap: 4px; max-width: 80ch; }
+.article h3 { font-size: var(--s1); font-weight: 600; font-family: var(--font-body); }
+.pr { color: var(--ink); border: 1px solid var(--ochre); background: rgba(181, 122, 14, .14); padding: 0 8px; font-size: var(--s-1); border-radius: 2px; }
+.meter { display: inline-flex; gap: 2px; vertical-align: middle; }
+.meter i { width: 10px; height: 8px; border: 1px solid var(--ink-soft); }
+.meter i.on { background: var(--ink); }
+
+.questions { counter-reset: q; display: grid; gap: 14px; max-width: 68ch; }
+.questions li { display: grid; grid-template-columns: 44px 1fr; align-items: baseline; }
+.questions li::before { counter-increment: q; content: counter(q); font-family: var(--font-display); font-size: var(--s5); line-height: 1; }
+
+.errorPanel { color: var(--graphite); padding: 12px 0; }
