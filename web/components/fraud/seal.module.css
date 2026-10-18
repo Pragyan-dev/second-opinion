@@ -1,0 +1,20 @@
+.seal { position: relative; width: 240px; height: 240px; flex: none; }
+.svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 24px; }
+.figure { font-size: 96px; line-height: 1; display: flex; align-items: baseline; }
+.pct { font-size: 38px; margin-left: 2px; font-family: var(--font-display); }
+.caption { font-size: 14px; color: var(--ink); margin-top: 6px; }
+.cant { font-size: 33px; line-height: 1.1; }
+@media (min-width: 640px) {
+  .seal { width: 360px; height: 360px; }
+  .figure { font-size: 160px; }
+  .pct { font-size: 64px; }
+  .cant { font-size: 52px; }
+}
+.ring { stroke-linecap: round; }
+@media (prefers-reduced-motion: no-preference) {
+  .draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: drawRing 1200ms ease-out forwards; }
+  .misreg { animation: slide 300ms ease-out 900ms backwards; }
+  @keyframes drawRing { to { stroke-dashoffset: 0; } }
+  @keyframes slide { from { transform: translate(0, 0); } to { transform: translate(var(--dx), var(--dy)); } }
+}

@@ -41,7 +41,11 @@ def _offline_transfer(request: FundingRequest) -> dict:
     if cached.exists():
         try:
             data = json.loads(cached.read_text())
-            return {"transfer_id": data.get("_id", f"offline-{uuid4().hex}")}
+            created = data.get("objectCreated")
+            if not isinstance(created, dict):
+                created = {}
+            transfer_id = data.get("_id") or created.get("_id") or f"offline-{uuid4().hex}"
+            return {"transfer_id": transfer_id}
         except Exception:
             pass
     return {"transfer_id": f"offline-{uuid4().hex}"}

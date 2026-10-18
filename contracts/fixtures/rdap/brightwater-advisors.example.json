@@ -1,0 +1,20 @@
+{
+  "objectClassName": "domain",
+  "handle": "DEMO-BRIGHTWATER-ADVISORS",
+  "ldhName": "brightwater-advisors.example",
+  "status": [
+    "active"
+  ],
+  "events": [
+    {
+      "eventAction": "registration",
+      "eventDate": "2017-10-17T00:00:00Z"
+    },
+    {
+      "eventAction": "last changed",
+      "eventDate": "2017-10-17T00:00:00Z"
+    }
+  ],
+  "_fixture_as_of": "2026-10-17",
+  "_note": "Fictional demo domain. RDAP has no record for .example; registered 9 years before the fixture date."
+}

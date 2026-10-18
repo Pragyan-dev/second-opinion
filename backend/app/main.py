@@ -1,6 +1,9 @@
 """V2 routes only. Workflow implementation belongs in core/. Owner B."""
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from contextlib import asynccontextmanager
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.config import configure_cors
@@ -13,6 +16,7 @@ from app.contracts import (
     StockReport,
 )
 from app.core import orchestrator
+from app.fraud import live_browser
 from app.purchase.nessie import fund, require_human_confirmation
 from app.purchase.preview import preview
 
@@ -22,7 +26,13 @@ class StockRequest(BaseModel):
     source_url: str | None = None
 
 
-app = FastAPI(title="Second Opinion v2 fixture scaffold")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await orchestrator.shutdown()
+
+
+app = FastAPI(title="Second Opinion v2", lifespan=lifespan)
 configure_cors(app)
 
 
@@ -32,29 +42,58 @@ def health():
 
 
 @app.post("/v1/fraud/analyze", status_code=202)
-def analyze(body: Capture, background: BackgroundTasks):
+async def analyze(body: Capture):
     if len(body.text) > 20000:
         raise HTTPException(422, "Captured text must be at most 20,000 characters")
-    job = orchestrator.create_fraud(body)
-    background.add_task(orchestrator.run_fraud, job["report_id"], body)
-    return job
+    return {"report_id": await orchestrator.start_fraud_job(body), "status": "pending"}
 
 
 @app.get("/v1/fraud/{id}", response_model=FraudReport)
-def fraud(id: str):
-    return orchestrator.get_job(id, "fraud")
+async def fraud(id: str):
+    report = await orchestrator.get_report(id, "fraud")
+    if report is None:
+        raise HTTPException(404, "Job not found")
+    return report
+
+
+NO_STORE = {"Cache-Control": "no-store"}
+
+
+@app.get("/v1/fraud/{id}/live.json")
+async def live_status(id: str):
+    return live_browser.status(id)
+
+
+@app.get("/v1/fraud/{id}/live.mjpg")
+async def live_stream(id: str):
+    stream = live_browser.mjpeg(id)
+    if stream is None:
+        raise HTTPException(404, "No live view for this report")
+    return StreamingResponse(
+        stream, media_type="multipart/x-mixed-replace; boundary=frame", headers=NO_STORE
+    )
+
+
+@app.get("/v1/fraud/{id}/preview.jpg")
+async def live_preview(id: str):
+    path = live_browser.preview_path(id)
+    if path is None:
+        raise HTTPException(404, "No preview for this report")
+    return FileResponse(path, media_type="image/jpeg", headers=NO_STORE)
 
 
 @app.post("/v1/stock/research", status_code=202)
-def research(body: StockRequest, background: BackgroundTasks):
-    job = orchestrator.create_stock(body.symbol)
-    background.add_task(orchestrator.run_stock, job["research_id"], body.symbol, body.source_url)
-    return job
+async def research(body: StockRequest):
+    research_id = await orchestrator.start_stock_job(body.symbol, body.source_url)
+    return {"research_id": research_id, "status": "pending"}
 
 
 @app.get("/v1/stock/{id}", response_model=StockReport)
-def stock(id: str):
-    return orchestrator.get_job(id, "stock")
+async def stock(id: str):
+    report = await orchestrator.get_report(id, "stock")
+    if report is None:
+        raise HTTPException(404, "Job not found")
+    return report
 
 
 @app.post("/v1/purchase/preview", response_model=OrderPreview)

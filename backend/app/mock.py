@@ -7,7 +7,15 @@ from fastapi import Depends, FastAPI, HTTPException
 from app.config import configure_cors, fixture
 from app.contracts import Capture, FraudReport, OrderPreview, StockReport
 from app.fraud.extract import fixture_name
-from app.main import StockRequest, health, purchase_fund, purchase_preview
+from app.main import (
+    StockRequest,
+    health,
+    live_preview,
+    live_status,
+    live_stream,
+    purchase_fund,
+    purchase_preview,
+)
 from app.purchase.nessie import require_human_confirmation
 
 app = FastAPI(title="Second Opinion v2 streaming mock")
@@ -83,5 +91,8 @@ def stock(id: str):
     return snapshot(id, "stock")
 
 
+app.get("/v1/fraud/{id}/live.json")(live_status)
+app.get("/v1/fraud/{id}/live.mjpg")(live_stream)
+app.get("/v1/fraud/{id}/preview.jpg")(live_preview)
 app.post("/v1/purchase/preview", response_model=OrderPreview)(purchase_preview)
 app.post("/v1/purchase/fund", dependencies=[Depends(require_human_confirmation)])(purchase_fund)
