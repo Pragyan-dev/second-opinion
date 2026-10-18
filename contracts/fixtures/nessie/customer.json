@@ -1,0 +1,16 @@
+{
+  "code": 201,
+  "message": "Customer created",
+  "objectCreated": {
+    "first_name": "Demo",
+    "last_name": "User",
+    "address": {
+      "street_number": "1",
+      "street_name": "Demo St",
+      "city": "Baltimore",
+      "state": "MD",
+      "zip": "21202"
+    },
+    "_id": "68395a5e-076e-49fe-ba22-a1c86daf2d2b"
+  }
+}

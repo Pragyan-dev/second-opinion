@@ -57,6 +57,7 @@ async def _fetch_market(symbol: str) -> dict:
         "price": price,
         "vol_30d": vol_30d,
         "vol_90d": vol_90d,
+        # Dashboard contract requires both keys. This aliases the 30-day move on purpose.
         "move_per_1000_usd": vol_30d,
         "spy_move_per_1000_usd": spy_vol,
         "max_drawdown_1y": max_dd_1y,
