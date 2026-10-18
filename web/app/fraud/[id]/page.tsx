@@ -6,6 +6,7 @@ import type { FraudReport } from "@/lib/contracts";
 import { fraudSteps } from "@/lib/fraudSteps";
 import { hostname, sourceTypeNoun } from "@/lib/format";
 import { useJob } from "@/lib/useJob";
+import { CheckedSiteContext, checkedHosts } from "@/lib/checkedSite";
 import { JobError, Stalled } from "@/components/shared/JobError";
 import { ProConColumns } from "@/components/shared/ProConColumns";
 import { Skeleton } from "@/components/shared/Skeleton";
@@ -16,6 +17,7 @@ import { EntityChips } from "@/components/fraud/EntityChips";
 import { JevChart } from "@/components/fraud/JevChart";
 import { LikelihoodSeal } from "@/components/fraud/LikelihoodSeal";
 import { LinkTrail } from "@/components/fraud/LinkTrail";
+import { LiveView } from "@/components/fraud/LiveView";
 import { SignalLedger } from "@/components/fraud/SignalLedger";
 import styles from "@/components/fraud/fraud.module.css";
 
@@ -44,7 +46,7 @@ export default function FraudPage({ params }: { params: { id: string } }) {
   const finished = !running;
 
   return (
-    <>
+    <CheckedSiteContext.Provider value={checkedHosts(report?.site_visit)}>
       <div className={styles.heroTop}>
         <h1 style={{ maxWidth: "20ch" }}>
           {report ? <>Checked {sourceTypeNoun(report.source_type)} from {hostname(report.page_url) || "an unknown page"}</> : "Checking…"}
@@ -60,6 +62,8 @@ export default function FraudPage({ params }: { params: { id: string } }) {
           : <Skeleton width={360} height={360} label="Likelihood loading" />}
         {report ? <BandStatement report={report} /> : <Skeleton height={120} />}
       </section>
+
+      {report && <LiveView reportId={report.report_id} running={running} />}
 
       <section className="band">
         <h2>What the message says</h2>
@@ -102,6 +106,6 @@ export default function FraudPage({ params }: { params: { id: string } }) {
           )}
         </section>
       )}
-    </>
+    </CheckedSiteContext.Provider>
   );
 }

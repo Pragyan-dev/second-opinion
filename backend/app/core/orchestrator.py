@@ -56,6 +56,9 @@ async def shutdown():
     for task in list(_tasks):
         task.cancel()
     await asyncio.gather(*_tasks, return_exceptions=True)
+    from app.fraud import live_browser
+
+    await live_browser.shutdown()
     await store.close()
 
 

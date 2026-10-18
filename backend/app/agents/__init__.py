@@ -11,6 +11,7 @@ from app.fraud.contact_match import ContactMatchStep
 from app.fraud.crawler import CrawlStep
 from app.fraud.extract import ExtractStep
 from app.fraud.jev import JevStep
+from app.fraud.live_browser import LiveBrowseStep
 from app.fraud.rdap import RdapStep
 from app.fraud.scoring import ScoringStep
 
@@ -18,7 +19,7 @@ from app.fraud.scoring import ScoringStep
 FRAUD_STAGES = [
     [ExtractStep()],
     [CrawlStep()],
-    [BrokercheckStep(), RdapStep(), JevStep()],
+    [BrokercheckStep(), RdapStep(), JevStep(), LiveBrowseStep()],
     [ContactMatchStep()],
     [ScoringStep()],
     [ExplainerStep()],
