@@ -1,5 +1,36 @@
 # Second Opinion
 
+**We click the scam link so you never have to.**
+
+[![Watch the intro video](https://img.youtube.com/vi/JbrBpjZfvZg/maxresdefault.jpg)](https://youtu.be/JbrBpjZfvZg)
+
+[Watch the intro video on YouTube](https://youtu.be/JbrBpjZfvZg)
+
+## Inspiration
+
+Americans lost $7.9 billion to investment scams in 2025, the largest fraud category the FTC tracks.[^ftc] We kept seeing the same pattern: fake firms, cloned websites, fake testimonials and too-good-to-be-true returns. By the time someone searches for the firm, it's too late. We wanted protection that works before you click.
+
+[^ftc]: Federal Trade Commission, [testimony to the Joint Economic Committee](https://www.ftc.gov/news-events/news/press-releases/2026/03/ftc-testifies-joint-economic-committee-agencys-efforts-combat-fraud), March 2026: $15.9 billion in reported fraud losses in 2025, $7.9 billion of them from investment scams.
+
+## What it does
+
+Second Opinion is a browser extension that steps in when you open an email or a stock page. With one click it runs two kinds of agents: a **Fraud Detector** that cross-checks the firm against FINRA BrokerCheck, RDAP domain age and the official contact records, and a **Stock Researcher** that pulls price history, dividends, volatility, news and red flags. If you want to buy, it shows a checkout preview, and no order is ever placed. The final decision is always yours.
+
+- **Link guard:** clicking a link inside an open Gmail message is stopped. Second Opinion opens the link on its own computer instead, and the report shows a live, view-only picture of the agent's browser touring the site. Nothing from the site reaches yours.
+- **Verify Authenticity:** a button on every open email in Gmail and Mailpit. Before you click it, a local pattern check flags guaranteed returns, pressure to act fast, requests for credentials and look-alike domains with a red **!**.
+- **The report explains itself:** why the email could be phishing, quoted in its own words; what the linked page says; whether the firm, email and phone match the official record; and an estimated fraud likelihood with a written explanation.
+- **Research on any stock page:** a Research button on Robinhood, Yahoo Finance, Google Finance, CNBC, MarketWatch, Nasdaq, Seeking Alpha and other finance sites, and for tickers mentioned on any page.
+- **Review, never trade:** the checkout preview can move sandbox money with Capital One's Nessie API only after you explicitly approve it. No route places, cancels or exercises a trade.
+- **Accessible:** contrast modes, text sizing, a reading guide, read-aloud and voice navigation on every dashboard page.
+
+## How we built it
+
+A FastAPI backend runs a fraud pipeline of specialized checks and five stock research agents in parallel, a Chrome extension captures the context, a Next.js dashboard shows the reports, and Capital One's Nessie sandbox handles demo fund transfers. Each role owned a vertical slice (fraud, stock data, dashboard and extension), and everyone built against shared fixture contracts, so nobody blocked anyone else.
+
+**Built with:** FastAPI, SQLite, Next.js 14, Chrome Manifest V3, OpenRouter (Claude Haiku), Jev by TypeSafe, FINRA BrokerCheck, RDAP, Tavily, yfinance, Playwright and Capital One Nessie.
+
+## About this repository
+
 A Technica 2026 app for message fraud checks, stock research, and human-reviewed funding previews. The main API runs live checks by default. Bundled examples and placeholder records are confined to explicit fixture mode and the mock API. Brightwater Capital Advisors and BRWT are fictional test cases. This app gives no buy or sell advice.
 
 ## Architecture and folders
@@ -25,7 +56,7 @@ scripts/             schema/types, demo check, offline persona stub
 
 `make types` generates `contracts/schema.json`, `web/lib/contracts.ts`, and `extension/lib/contracts.d.ts` from the exact Python contracts. Do not edit generated files by hand.
 
-## Start
+## Running it locally
 
 Install Python 3.11 and Node.js 22. Run `make setup` and `make types`. Copy `.env.example` to `.env` and configure the OpenRouter and search keys. Use `USE_FIXTURES=0`, an empty `FIXTURE_AGENTS`, and `LIVE_BROKERCHECK=1` for live checks. Run `make dev` and `make web` in separate terminals; the dashboard proxies API requests to port 8000 by default.
 
