@@ -83,10 +83,14 @@ class Aliases:
         return urlunsplit((scheme, host, parts.path or "/", parts.query, ""))
 
 
-def pick_start_url(capture: Capture) -> str | None:
+def pick_start_url(capture: Capture, found: list[str] = ()) -> str | None:
+    """The page to visit: the website itself, or the first followable link.
+
+    `found` adds links extracted from the text, for messages whose links are not anchors.
+    """
     if capture.source_type == "website":
         return capture.url
-    for link in capture.links:
+    for link in dict.fromkeys([*capture.links, *found]):
         if urlsplit(link).scheme not in ("http", "https"):
             continue
         if registered_domain(link) in SKIP_DOMAINS:
@@ -123,6 +127,54 @@ def visible_text(html: str) -> str:
         node.decompose()
     body = tree.body or tree.root
     return " ".join(body.text(separator=" ").split()) if body else ""
+
+
+def text_lines(html: str) -> str:
+    """All visible text, one line per text node, so quotes from it stay short and exact."""
+    tree = HTMLParser(html)
+    for node in tree.css("script, style, noscript, template"):
+        node.decompose()
+    body = tree.body or tree.root
+    if not body:
+        return ""
+    lines = (" ".join(line.split()) for line in body.text(separator="\n").split("\n"))
+    return "\n".join(line for line in lines if line)
+
+
+def page_title(html: str) -> str:
+    title = HTMLParser(html).css_first("title")
+    return title.text(strip=True) if title else ""
+
+
+# What a form field asks for, matched on its type, name, id, placeholder, autocomplete and label.
+SENSITIVE_FIELDS = {
+    "password": re.compile(r"password|passcode|\bpin\b", re.IGNORECASE),
+    "card number": re.compile(r"card|cc-?(num|number|csc|exp)|cvv|cvc", re.IGNORECASE),
+    "bank account": re.compile(r"routing|account.?(number|no)|iban|swift|bank", re.IGNORECASE),
+    "Social Security number": re.compile(r"\bssn\b|social.?security|tax.?id", re.IGNORECASE),
+    "crypto wallet key": re.compile(r"seed.?phrase|mnemonic|private.?key|recovery.?phrase", re.I),
+}
+
+
+def sensitive_fields(html: str) -> list[str]:
+    """Kinds of sensitive data the page's form fields ask for."""
+    tree = HTMLParser(html)
+    labels = {
+        label.attributes.get("for"): label.text(strip=True)
+        for label in tree.css("label[for]")
+    }
+    found = []
+    for node in tree.css("input, select, textarea"):
+        attrs = node.attributes
+        if (attrs.get("type") or "").lower() in ("hidden", "submit", "button", "checkbox", "radio"):
+            continue
+        haystack = " ".join(
+            filter(None, [*(attrs.get(k) for k in ("type", "name", "id", "placeholder",
+                                                     "autocomplete", "aria-label")),
+                          labels.get(attrs.get("id"))])
+        )
+        found += [kind for kind, pattern in SENSITIVE_FIELDS.items() if pattern.search(haystack)]
+    return list(dict.fromkeys(found))
 
 
 def page_text(html: str) -> str:
@@ -290,6 +342,10 @@ async def crawl(start: str, firms: list[str]) -> dict:
         "site_visit": visit.model_dump(mode="json"),
         "crawl_text": main_text[:TEXT_CAP],
         "redirect_chain": [aliases.logical(url, scheme) for url in first.chain],
+        # For the linked-page report: every visible line, the title and sensitive form fields.
+        "page_lines": "\n".join(text_lines(html) for _, html in pages)[:TEXT_CAP],
+        "page_title": page_title(pages[0][1]),
+        "sensitive_fields": _dedupe(f for _, html in pages for f in sensitive_fields(html)),
     }
 
 
@@ -309,10 +365,14 @@ class CrawlStep:
             ctx["redirect_chain"] = [ctx["site_visit"].start_url, ctx["site_visit"].final_url]
             ctx["crawl_ok"] = True
         else:
-            start = pick_start_url(ctx["capture"])
+            # An email that asks the reader to open a link is checked at that link.
+            start = ctx.get("link_requested") or pick_start_url(
+                ctx["capture"], ctx.get("urls", [])
+            )
             if start is None:
                 return
-            key = f"crawl:{start}"
+            # v2 results carry the page lines, title and form fields for the linked-page report.
+            key = f"crawl:v2:{start}"
             result = await cache.get(key)
             if result is None:
                 try:
@@ -332,6 +392,9 @@ class CrawlStep:
             ctx["site_visit"] = SiteVisit.model_validate(result["site_visit"])
             ctx["crawl_text"] = result["crawl_text"]
             ctx["redirect_chain"] = result["redirect_chain"]
+            ctx["page_lines"] = result.get("page_lines", "")
+            ctx["page_title"] = result.get("page_title", "")
+            ctx["sensitive_fields"] = result.get("sensitive_fields", [])
             ctx["crawl_ok"] = True
         visit = ctx["site_visit"]
         ctx["site_domain"] = registered_domain(visit.final_url)

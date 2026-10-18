@@ -160,6 +160,30 @@
           },
           "title": "Tickers",
           "type": "array"
+        },
+        "email_title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Email Title"
+        },
+        "email_body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Email Body"
         }
       },
       "required": [
@@ -215,6 +239,28 @@
           "anyOf": [
             {
               "$ref": "#/$defs/SiteVisit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "phishing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PhishingCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "page": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PageCheck"
             },
             {
               "type": "null"
@@ -598,6 +644,148 @@
       "title": "OrderTicket",
       "type": "object"
     },
+    "PageCheck": {
+      "properties": {
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "default": "",
+          "title": "Title",
+          "type": "string"
+        },
+        "claimed_firm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claimed Firm"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PhishingReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "sensitive_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensitive Fields",
+          "type": "array"
+        },
+        "matches_message": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Signal"
+          },
+          "title": "Matches Message",
+          "type": "array"
+        }
+      },
+      "required": [
+        "url",
+        "summary"
+      ],
+      "title": "PageCheck",
+      "type": "object"
+    },
+    "PhishingCheck": {
+      "properties": {
+        "email_title": {
+          "title": "Email Title",
+          "type": "string"
+        },
+        "sender": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender"
+        },
+        "link_requested": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Link Requested"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PhishingReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "email_title",
+        "summary"
+      ],
+      "title": "PhishingCheck",
+      "type": "object"
+    },
+    "PhishingReason": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "evidence": {
+          "default": "",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "weight": {
+          "default": 1,
+          "title": "Weight",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "detail"
+      ],
+      "title": "PhishingReason",
+      "type": "object"
+    },
     "ProCon": {
       "properties": {
         "text": {
@@ -884,6 +1072,15 @@
     },
     "ProCon": {
       "$ref": "#/$defs/ProCon"
+    },
+    "PhishingReason": {
+      "$ref": "#/$defs/PhishingReason"
+    },
+    "PhishingCheck": {
+      "$ref": "#/$defs/PhishingCheck"
+    },
+    "PageCheck": {
+      "$ref": "#/$defs/PageCheck"
     },
     "FraudReport": {
       "$ref": "#/$defs/FraudReport"

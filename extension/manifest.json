@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Second Opinion (demo)",
   "version": "0.2.0",
-  "description": "Fixture-backed fraud checks, stock research, and human-reviewed funding.",
+  "description": "Fraud checks for emails (Gmail and Mailpit), X posts and webpages, stock research, and human-reviewed funding.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -42,7 +42,9 @@
         "https://www.fool.com/*",
         "https://www.barrons.com/*",
         "https://www.webull.com/*",
-        "https://www.reuters.com/*"
+        "https://www.reuters.com/*",
+        "http://localhost:8025/*",
+        "http://127.0.0.1:8025/*"
       ],
       "js": [
         "content.js"
@@ -55,7 +57,10 @@
       "resources": [
         "detectors/*.js",
         "lib/capture.js",
-        "lib/linkGuard.js"
+        "lib/linkGuard.js",
+        "lib/emailText.js",
+        "lib/shady.js",
+        "lib/verifyButton.js"
       ],
       "matches": [
         "<all_urls>"

@@ -34,6 +34,106 @@
     ],
     "domain_age_days": 19
   },
+  "page": {
+    "url": "https://brightwater-capital.example/",
+    "title": "Brightwater Capital Advisors · Fictional demo",
+    "claimed_firm": "Brightwater Capital Advisors",
+    "summary": "The linked page (Brightwater Capital Advisors · Fictional demo) shows 8 common warning signs, including countdown timer pushing you to hurry, claims only a few places are left and celebrity or authority endorsement.",
+    "reasons": [
+      {
+        "id": "countdown",
+        "label": "Countdown timer pushing you to hurry",
+        "detail": "The page uses a common pressure or scam tactic: countdown timer pushing you to hurry.",
+        "evidence": "Your VIP hold expires in",
+        "weight": 2
+      },
+      {
+        "id": "scarcity",
+        "label": "Claims only a few places are left",
+        "detail": "The page uses a common pressure or scam tactic: claims only a few places are left.",
+        "evidence": "Only 7 VIP spots left · Closes in 24 hours",
+        "weight": 2
+      },
+      {
+        "id": "endorsement",
+        "label": "Celebrity or authority endorsement",
+        "detail": "The page uses a common pressure or scam tactic: celebrity or authority endorsement.",
+        "evidence": "“E.T. approves it.”",
+        "weight": 2
+      },
+      {
+        "id": "too_good",
+        "label": "Promises an unrealistic reward",
+        "detail": "The page uses a common pressure or scam tactic: promises an unrealistic reward.",
+        "evidence": "Guaranteed monthly returns",
+        "weight": 2
+      },
+      {
+        "id": "payment_request",
+        "label": "Asks for money or payment details",
+        "detail": "The page uses a common pressure or scam tactic: asks for money or payment details.",
+        "evidence": "Reserve your position with a $5,000 wire transfer. Contact our team for wire instructions.",
+        "weight": 2
+      },
+      {
+        "id": "exclusivity",
+        "label": "Exclusive or VIP offer",
+        "detail": "The page uses a common pressure or scam tactic: exclusive or vip offer.",
+        "evidence": "VIP ACCESS",
+        "weight": 1
+      },
+      {
+        "id": "urgency",
+        "label": "Pressure to act fast",
+        "detail": "The page uses a common pressure or scam tactic: pressure to act fast.",
+        "evidence": "Our BRWT opportunity closes in 24 hours. Guaranteed returns are a fictional claim deliberately included for the fraud-check demo.",
+        "weight": 1
+      },
+      {
+        "id": "secrecy",
+        "label": "Asks for secrecy or a private channel",
+        "detail": "The page uses a common pressure or scam tactic: asks for secrecy or a private channel.",
+        "evidence": "Move the conversation to WhatsApp for private allocation instructions.",
+        "weight": 1
+      }
+    ],
+    "sensitive_fields": [],
+    "matches_message": [
+      {
+        "id": "page_firm_match",
+        "label": "Same firm as the message",
+        "check": "pass",
+        "detail": "The page presents itself as Brightwater Capital Advisors, as the message does.",
+        "source": {
+          "title": "Linked page",
+          "url": "https://brightwater-capital.example/"
+        },
+        "weight": 0
+      },
+      {
+        "id": "page_email_match",
+        "label": "Contact email matches the message",
+        "check": "pass",
+        "detail": "The page lists offers@brightwater-capital.example, the same domain as the message.",
+        "source": {
+          "title": "Linked page",
+          "url": "https://brightwater-capital.example/"
+        },
+        "weight": 0
+      },
+      {
+        "id": "page_phone_match",
+        "label": "Phone number matches the message",
+        "check": "pass",
+        "detail": "The page lists +1-202-555-0199, a number the message also gives.",
+        "source": {
+          "title": "Linked page",
+          "url": "https://brightwater-capital.example/"
+        },
+        "weight": 0
+      }
+    ]
+  },
   "signals": [
     {
       "id": "firm_record",

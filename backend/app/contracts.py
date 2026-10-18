@@ -16,6 +16,8 @@ class Capture(BaseModel):
     emails: list[str] = []
     phones: list[str] = []
     tickers: list[str] = []
+    email_title: Optional[str] = None   # email subject; when set, used instead of title
+    email_body: Optional[str] = None    # plain-text body, links as "text <url>"; max 20,000 chars
 
 class Source(BaseModel):
     title: str
@@ -56,6 +58,29 @@ class ProCon(BaseModel):
     text: str
     source: Optional[Source] = None
 
+class PhishingReason(BaseModel):
+    id: str
+    label: str
+    detail: str
+    evidence: str = ""               # quoted verbatim from the email, or empty
+    weight: int = 1                  # 1 minor, 2 notable, 3 strong
+
+class PhishingCheck(BaseModel):
+    email_title: str
+    sender: Optional[str] = None
+    link_requested: Optional[str] = None   # the link the email asks the reader to open
+    summary: str
+    reasons: list[PhishingReason] = []
+
+class PageCheck(BaseModel):
+    url: str                          # the page as finally loaded, after redirects
+    title: str = ""
+    claimed_firm: Optional[str] = None
+    summary: str
+    reasons: list[PhishingReason] = []   # warning signs, evidence quoted verbatim from the page
+    sensitive_fields: list[str] = []     # what the page's forms ask for, e.g. "card number"
+    matches_message: list[Signal] = []   # the page's firm and contacts against the message's
+
 class FraudReport(BaseModel):
     report_id: str
     status: Status
@@ -63,6 +88,8 @@ class FraudReport(BaseModel):
     page_url: str
     entities: dict[str, list[str]]
     site_visit: Optional[SiteVisit] = None
+    phishing: Optional[PhishingCheck] = None  # emails only
+    page: Optional[PageCheck] = None          # the linked page, when one was visited
     signals: list[Signal] = []
     jev_scores: list[JevScore] = []
     fraud_likelihood: Optional[int] = None   # 0 to 100, None when evidence is too thin

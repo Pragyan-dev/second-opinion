@@ -177,7 +177,10 @@ test("manifest references real entry points and declares detector modules", () =
   // Every stock site the detector knows gets the content script, and nothing broader.
   for (const site of stock.SITES) assert.ok(matches.some(m => m.startsWith(`https://${site.host}/`)), site.host);
   assert.ok(!matches.some(m => m.includes("<all_urls>") || m.startsWith("*://") || m.includes("://*.")));
-  assert.deepEqual(manifest.web_accessible_resources[0].resources, ["detectors/*.js", "lib/capture.js", "lib/linkGuard.js"]);
+  assert.deepEqual(manifest.web_accessible_resources[0].resources, ["detectors/*.js", "lib/capture.js", "lib/linkGuard.js",
+    "lib/emailText.js", "lib/shady.js", "lib/verifyButton.js"]);
+  // Mailpit, the local test inbox, on its default port only.
+  assert.deepEqual(matches.filter(m => m.endsWith(":8025/*")), ["http://localhost:8025/*", "http://127.0.0.1:8025/*"]);
   assert.deepEqual(manifest.host_permissions, ["http://localhost:8000/*", "http://localhost:8001/*"]);
 });
 

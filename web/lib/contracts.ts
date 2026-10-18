@@ -9,6 +9,8 @@ export type Links = string[];
 export type Emails = string[];
 export type Phones = string[];
 export type Tickers = string[];
+export type EmailTitle = string | null;
+export type EmailBody = string | null;
 export type Title1 = string;
 export type Url1 = string;
 export type Id = string;
@@ -33,6 +35,23 @@ export type Crd = string | null;
 export type Phone = string | null;
 export type Website = string | null;
 export type Text1 = string;
+export type Id1 = string;
+export type Label2 = string;
+export type Detail1 = string;
+export type Evidence1 = string;
+export type Weight1 = number;
+export type EmailTitle1 = string;
+export type Sender1 = string | null;
+export type LinkRequested = string | null;
+export type Summary = string;
+export type Reasons = PhishingReason[];
+export type Url2 = string;
+export type Title2 = string;
+export type ClaimedFirm1 = string | null;
+export type Summary1 = string;
+export type Reasons1 = PhishingReason[];
+export type SensitiveFields = string[];
+export type MatchesMessage = Signal[];
 export type ReportId = string;
 export type Status = "pending" | "running" | "done" | "error";
 export type SourceType1 = "website" | "email" | "social_post" | "stock_page";
@@ -50,18 +69,18 @@ export type Agent = string;
 export type Status1 = "pending" | "running" | "done" | "error";
 export type Sources = Source[];
 export type Error = string | null;
-export type Title2 = string;
-export type Url2 = string;
+export type Title3 = string;
+export type Url3 = string;
 export type Outlet = string;
 export type Published = string;
-export type Summary = string;
+export type Summary2 = string;
 export type Relevance = number;
 export type IsPressRelease = boolean;
 export type ResearchId = string;
 export type Symbol = string;
 export type AssetType = "stock" | "etf" | "unknown";
 export type Status2 = "pending" | "running" | "done" | "error";
-export type Summary1 = string | null;
+export type Summary3 = string | null;
 export type Articles = Article[];
 export type Pros = ProCon[];
 export type Cons = ProCon[];
@@ -96,6 +115,9 @@ export interface SecondOpinionContracts {
   SiteVisit?: SiteVisit;
   OfficialContact?: OfficialContact;
   ProCon?: ProCon;
+  PhishingReason?: PhishingReason;
+  PhishingCheck?: PhishingCheck;
+  PageCheck?: PageCheck;
   FraudReport?: FraudReport;
   AgentResult?: AgentResult;
   Article?: Article;
@@ -115,6 +137,8 @@ export interface Capture {
   emails?: Emails;
   phones?: Phones;
   tickers?: Tickers;
+  email_title?: EmailTitle;
+  email_body?: EmailBody;
   [k: string]: unknown;
 }
 export interface Source {
@@ -162,6 +186,32 @@ export interface ProCon {
   source?: Source | null;
   [k: string]: unknown;
 }
+export interface PhishingReason {
+  id: Id1;
+  label: Label2;
+  detail: Detail1;
+  evidence?: Evidence1;
+  weight?: Weight1;
+  [k: string]: unknown;
+}
+export interface PhishingCheck {
+  email_title: EmailTitle1;
+  sender?: Sender1;
+  link_requested?: LinkRequested;
+  summary: Summary;
+  reasons?: Reasons;
+  [k: string]: unknown;
+}
+export interface PageCheck {
+  url: Url2;
+  title?: Title2;
+  claimed_firm?: ClaimedFirm1;
+  summary: Summary1;
+  reasons?: Reasons1;
+  sensitive_fields?: SensitiveFields;
+  matches_message?: MatchesMessage;
+  [k: string]: unknown;
+}
 export interface FraudReport {
   report_id: ReportId;
   status: Status;
@@ -169,6 +219,8 @@ export interface FraudReport {
   page_url: PageUrl;
   entities: Entities;
   site_visit?: SiteVisit | null;
+  phishing?: PhishingCheck | null;
+  page?: PageCheck | null;
   signals?: Signals;
   jev_scores?: JevScores;
   fraud_likelihood?: FraudLikelihood;
@@ -196,11 +248,11 @@ export interface Data {
   [k: string]: unknown;
 }
 export interface Article {
-  title: Title2;
-  url: Url2;
+  title: Title3;
+  url: Url3;
   outlet: Outlet;
   published: Published;
-  summary: Summary;
+  summary: Summary2;
   relevance: Relevance;
   is_press_release: IsPressRelease;
   [k: string]: unknown;
@@ -211,7 +263,7 @@ export interface StockReport {
   asset_type: AssetType;
   status: Status2;
   sections: Sections;
-  summary?: Summary1;
+  summary?: Summary3;
   articles?: Articles;
   pros?: Pros;
   cons?: Cons;

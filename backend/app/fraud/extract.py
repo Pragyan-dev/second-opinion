@@ -40,7 +40,9 @@ class Names(BaseModel):
 
 
 def fixture_name(capture: dict) -> str:
-    content = capture.get("text", "") + " " + " ".join(capture.get("links", []))
+    content = " ".join(
+        [capture.get("text", ""), capture.get("email_body") or "", *capture.get("links", [])]
+    )
     return "fraud_clone.json" if "brightwater" in content.lower() else "fraud_real.json"
 
 
@@ -54,8 +56,16 @@ def _dedupe(values) -> list[str]:
     return out
 
 
+def email_content(capture: Capture) -> tuple[str, str]:
+    """(title, body), preferring the email_title and email_body fields when they are set."""
+    title = capture.email_title if capture.email_title is not None else capture.title
+    body = capture.email_body if capture.email_body is not None else capture.text
+    return title, body
+
+
 def _text(capture: Capture) -> str:
-    return "\n".join(part for part in (capture.title, capture.sender, capture.text) if part)
+    title, body = email_content(capture)
+    return "\n".join(part for part in (title, capture.sender, body) if part)
 
 
 def regex_entities(capture: Capture) -> dict:
