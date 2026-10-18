@@ -72,6 +72,15 @@ class PhishingCheck(BaseModel):
     summary: str
     reasons: list[PhishingReason] = []
 
+class PageCheck(BaseModel):
+    url: str                          # the page as finally loaded, after redirects
+    title: str = ""
+    claimed_firm: Optional[str] = None
+    summary: str
+    reasons: list[PhishingReason] = []   # warning signs, evidence quoted verbatim from the page
+    sensitive_fields: list[str] = []     # what the page's forms ask for, e.g. "card number"
+    matches_message: list[Signal] = []   # the page's firm and contacts against the message's
+
 class FraudReport(BaseModel):
     report_id: str
     status: Status
@@ -80,6 +89,7 @@ class FraudReport(BaseModel):
     entities: dict[str, list[str]]
     site_visit: Optional[SiteVisit] = None
     phishing: Optional[PhishingCheck] = None  # emails only
+    page: Optional[PageCheck] = None          # the linked page, when one was visited
     signals: list[Signal] = []
     jev_scores: list[JevScore] = []
     fraud_likelihood: Optional[int] = None   # 0 to 100, None when evidence is too thin

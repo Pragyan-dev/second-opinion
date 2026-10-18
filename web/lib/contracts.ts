@@ -45,6 +45,13 @@ export type Sender1 = string | null;
 export type LinkRequested = string | null;
 export type Summary = string;
 export type Reasons = PhishingReason[];
+export type Url2 = string;
+export type Title2 = string;
+export type ClaimedFirm1 = string | null;
+export type Summary1 = string;
+export type Reasons1 = PhishingReason[];
+export type SensitiveFields = string[];
+export type MatchesMessage = Signal[];
 export type ReportId = string;
 export type Status = "pending" | "running" | "done" | "error";
 export type SourceType1 = "website" | "email" | "social_post" | "stock_page";
@@ -62,18 +69,18 @@ export type Agent = string;
 export type Status1 = "pending" | "running" | "done" | "error";
 export type Sources = Source[];
 export type Error = string | null;
-export type Title2 = string;
-export type Url2 = string;
+export type Title3 = string;
+export type Url3 = string;
 export type Outlet = string;
 export type Published = string;
-export type Summary1 = string;
+export type Summary2 = string;
 export type Relevance = number;
 export type IsPressRelease = boolean;
 export type ResearchId = string;
 export type Symbol = string;
 export type AssetType = "stock" | "etf" | "unknown";
 export type Status2 = "pending" | "running" | "done" | "error";
-export type Summary2 = string | null;
+export type Summary3 = string | null;
 export type Articles = Article[];
 export type Pros = ProCon[];
 export type Cons = ProCon[];
@@ -110,6 +117,7 @@ export interface SecondOpinionContracts {
   ProCon?: ProCon;
   PhishingReason?: PhishingReason;
   PhishingCheck?: PhishingCheck;
+  PageCheck?: PageCheck;
   FraudReport?: FraudReport;
   AgentResult?: AgentResult;
   Article?: Article;
@@ -194,6 +202,16 @@ export interface PhishingCheck {
   reasons?: Reasons;
   [k: string]: unknown;
 }
+export interface PageCheck {
+  url: Url2;
+  title?: Title2;
+  claimed_firm?: ClaimedFirm1;
+  summary: Summary1;
+  reasons?: Reasons1;
+  sensitive_fields?: SensitiveFields;
+  matches_message?: MatchesMessage;
+  [k: string]: unknown;
+}
 export interface FraudReport {
   report_id: ReportId;
   status: Status;
@@ -202,6 +220,7 @@ export interface FraudReport {
   entities: Entities;
   site_visit?: SiteVisit | null;
   phishing?: PhishingCheck | null;
+  page?: PageCheck | null;
   signals?: Signals;
   jev_scores?: JevScores;
   fraud_likelihood?: FraudLikelihood;
@@ -229,11 +248,11 @@ export interface Data {
   [k: string]: unknown;
 }
 export interface Article {
-  title: Title2;
-  url: Url2;
+  title: Title3;
+  url: Url3;
   outlet: Outlet;
   published: Published;
-  summary: Summary1;
+  summary: Summary2;
   relevance: Relevance;
   is_press_release: IsPressRelease;
   [k: string]: unknown;
@@ -244,7 +263,7 @@ export interface StockReport {
   asset_type: AssetType;
   status: Status2;
   sections: Sections;
-  summary?: Summary2;
+  summary?: Summary3;
   articles?: Articles;
   pros?: Pros;
   cons?: Cons;

@@ -136,8 +136,8 @@ test("Mailpit gets a Verify Authenticity tab with a caution mark, and sends noth
   assert.ok(button, "button added");
   assert.equal(button.nextElementSibling.className.includes("ms-auto"), true, "before the size controls");
   assert.equal(button.dataset.shady, "true");
-  assert.equal(button.querySelector(".second-opinion-caution").textContent, "!");
-  assert.equal(button.textContent, `!${LABEL}`);
+  assert.equal(button.lastElementChild.getAttribute("class"), "second-opinion-caution", "the mark is after the label");
+  assert.equal(button.textContent, LABEL);
   assert.equal(sent.length, 0, "the local check sends nothing");
 
   button.dispatchEvent(new document.defaultView.Event("click"));

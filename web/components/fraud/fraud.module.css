@@ -58,7 +58,8 @@
 .ledgerRow { display: grid; grid-template-columns: 24px 1fr; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
 .ledgerLabel { font-weight: 600; }
 
-/* ---------- phishing reasons ---------- */
+/* ---------- phishing reasons (email and linked page) ---------- */
+.partTag { margin: 0 0 4px; font-size: var(--s-1); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
 .phishSummary { font-family: var(--font-display); font-variation-settings: "opsz" 40; font-size: var(--s2); line-height: 1.35; margin-bottom: 20px; }
 .phishLink { display: grid; gap: 6px; padding: 14px 16px; margin-bottom: 20px; max-width: 880px; border: 1px solid var(--seal); background: var(--paper-raised); }
 .phishList { max-width: 880px; }

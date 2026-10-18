@@ -1,12 +1,15 @@
 """Fraud likelihood scoring. A pure function of ctx, no I/O. Owner B."""
 
-from app.contracts import JevScore, PhishingCheck, Signal
+from app.contracts import JevScore, PageCheck, PhishingCheck, Signal
 
 # contact_match is the single combined id used by the v2 demo fixtures.
 CONTACT_IDS = {"phone_match", "email_domain_match", "website_match", "contact_match"}
 # Points per unit of phishing-reason weight (1 to 3 each), capped.
 PHISHING_POINTS = 6
 PHISHING_CAP = 36
+# The same for the linked page's warning signs and its mismatches with the message.
+PAGE_POINTS = 5
+PAGE_CAP = 30
 
 
 def band_for(likelihood: int) -> str:
@@ -29,6 +32,15 @@ def score(ctx: dict) -> tuple[int | None, str, str]:
         points = min(PHISHING_CAP, PHISHING_POINTS * sum(r.weight for r in signs))
         noun = "sign" if len(signs) == 1 else "signs"
         contributions.append((points, f"{len(signs)} common phishing {noun} in the email"))
+    page: PageCheck | None = ctx.get("page")
+    if page and (page.reasons or any(s.check == "warn" for s in page.matches_message)):
+        mismatches = sum(1 for s in page.matches_message if s.check == "warn")
+        weight = sum(r.weight for r in page.reasons) + mismatches
+        noun = "sign" if len(page.reasons) + mismatches == 1 else "signs"
+        contributions.append(
+            (min(PAGE_CAP, PAGE_POINTS * weight),
+             f"{len(page.reasons) + mismatches} warning {noun} on the linked page")
+        )
 
     def has(id: str, check: str) -> bool:
         return any(s.id == id and s.check == check for s in signals)

@@ -50,7 +50,13 @@ The extension adds a **Verify Authenticity** button to an open email: next to th
 
 Before you click anything, a local pattern check runs in the page (`extension/lib/shady.js`). If the email looks suspicious, for example because it promises guaranteed returns, pressures you to act fast, asks for credentials or links to a domain that looks like the sender's, the button shows a red **!**. Hover over it to see the reasons. This check makes no network requests: nothing is sent until you click.
 
-For emails, the report starts with **Why this email could be phishing**. This section lists each reason with the email's own words quoted and shows the link the email asks you to open, as plain text only. The agent then checks that link the same way it checks any link: a site visit, record and domain checks, and the live view of the agent's browser.
+For emails, the report starts with **Why this email could be phishing**. This section lists each reason with the email's own words quoted and shows the link the email asks you to open, as plain text only. The agent then visits that link, and **What the linked page says** reports on the page separately:
+
+- the page's own warning signs, each quoted from the page: countdowns, "only N spots left", guaranteed returns, endorsements, wire or crypto payment, moves to WhatsApp
+- the sensitive details its forms ask for, such as passwords, card numbers or bank details
+- whether its firm, email and phone match the email, and whether it is hosted away from its own contact domain
+
+The record and domain checks and the live view of the agent's browser follow. The likelihood score and the written explanation cover both the email and the page.
 
 Gmail is read only when exactly one message body is open. In Mailpit, the open message is read from Mailpit's own API on `localhost:8025` or `127.0.0.1:8025`, and the message list is never read. Mailpit runs under a `--webroot` path are also supported.
 

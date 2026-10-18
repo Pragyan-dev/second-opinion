@@ -259,18 +259,25 @@ def heuristic_reasons(capture: Capture) -> tuple[list[PhishingReason], str | Non
     return reasons, link
 
 
-def verify_llm(result: LlmPhishing, text: str, known: set[str]) -> list[PhishingReason]:
-    """LLM reasons with a listed id, a new id, and evidence quoted verbatim from the email."""
+def verify_llm(
+    reasons: list[LlmReason], text: str, known: set[str], labels: dict[str, str] = LABELS
+) -> list[PhishingReason]:
+    """LLM reasons with a listed id, a new id, and evidence quoted verbatim from `text`."""
     haystack = _squash(text)
     kept = []
-    for reason in result.reasons:
+    for reason in reasons:
         evidence = _squash(reason.evidence)
-        if reason.id not in LABELS or reason.id in known or not reason.detail.strip():
+        if reason.id not in labels or reason.id in known or not reason.detail.strip():
             continue
         if not evidence or evidence not in haystack or ACCUSATION.search(reason.detail):
             continue
         known.add(reason.id)
-        kept.append(_reason(reason.id, reason.detail.strip(), _quote(evidence)))
+        kept.append(
+            PhishingReason(
+                id=reason.id, label=labels[reason.id], detail=reason.detail.strip(),
+                evidence=_quote(evidence), weight=1,
+            )
+        )
     return kept
 
 
@@ -316,7 +323,7 @@ async def llm_check(capture: Capture, base: PhishingCheck, timeout: float) -> Ph
     )
     answer = await llm.structured(prompt, LlmPhishing, SYSTEM, timeout)
     known = {r.id for r in base.reasons}
-    added = verify_llm(answer, f"{capture.sender or ''}\n{title}\n{body}", known)
+    added = verify_llm(answer.reasons, f"{capture.sender or ''}\n{title}\n{body}", known)
     reasons = base.reasons + added
     link = base.link_requested
     if link is None and answer.link_url in links:

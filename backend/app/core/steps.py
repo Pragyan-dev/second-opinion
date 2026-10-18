@@ -14,6 +14,7 @@ STEP_LABELS = {
     "brokercheck": "Official record lookup",
     "rdap": "Domain age lookup",
     "jev": "Pressure language check",
+    "page": "Linked page review",
     "contact_match": "Contact comparison",
     "scoring": "Scoring",
     "explainer": "Explanation",

@@ -6,8 +6,35 @@ import { assess } from "./shady.js";
 
 export const BUTTON_ID = "second-opinion-verify";
 export const LABEL = "Verify Authenticity";
-const MARK_STYLE = "display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;" +
-  "margin-right:6px;border-radius:50%;background:#B0262F;color:#fff;font:700 12px/1 system-ui;vertical-align:-3px";
+// The button is a centred flex row, so the label and the mark line up whatever the site's fonts.
+// Its baseline is the label's, which sits it on the line of the text beside it.
+// Important, because Gmail's own button rules otherwise win and the mark drops to a new line.
+const LAYOUT = {
+  display: "inline-flex", "flex-wrap": "nowrap", "align-items": "center", "align-self": "center",
+  gap: "6px", "vertical-align": "baseline", "white-space": "nowrap", width: "auto", "max-width": "none",
+};
+// The "!" is drawn, not typed: a glyph in a circle drifts off centre with the font's metrics.
+const SVG = "http://www.w3.org/2000/svg";
+const MARK_SHAPES = [
+  ["circle", { cx: 8, cy: 8, r: 8, fill: "#B0262F" }],
+  ["rect", { x: 7, y: 3.5, width: 2, height: 6, rx: 1, fill: "#fff" }],
+  ["circle", { cx: 8, cy: 12, r: 1.1, fill: "#fff" }],
+];
+
+function cautionMark(doc) {
+  const mark = doc.createElementNS(SVG, "svg");
+  mark.setAttribute("class", "second-opinion-caution");
+  mark.setAttribute("viewBox", "0 0 16 16");
+  mark.setAttribute("aria-hidden", "true");
+  // Inline, not block: if the site ever beats the flex layout, the mark still stays on the line.
+  mark.style.cssText = "display:inline-block;flex:none;width:1.15em;height:1.15em;vertical-align:middle;margin:0";
+  for (const [name, attributes] of MARK_SHAPES) {
+    const shape = doc.createElementNS(SVG, name);
+    for (const [key, value] of Object.entries(attributes)) shape.setAttribute(key, String(value));
+    mark.append(shape);
+  }
+  return mark;
+}
 
 export const assessCapture = capture => assess({
   title: capture.email_title ?? capture.title,
@@ -20,12 +47,10 @@ function render(doc, button, result, label = LABEL) {
   button.replaceChildren();
   button.dataset.shady = String(!!result?.shady);
   if (result?.shady) {
-    const mark = doc.createElement("span");
-    mark.className = "second-opinion-caution";
-    mark.textContent = "!";
-    mark.style.cssText = MARK_STYLE;
-    mark.setAttribute("aria-hidden", "true");
-    button.append(mark, label);
+    const text = doc.createElement("span");
+    text.textContent = label;
+    text.style.cssText = "flex:none;white-space:nowrap";
+    button.append(text, cautionMark(doc));
     button.title = `Caution: this email shows signs of phishing (${result.reasons.join("; ")}). ` +
       "Click to verify it with Second Opinion.";
     button.setAttribute("aria-label", `${label}. Caution: this email shows signs of phishing.`);
@@ -54,6 +79,7 @@ export function installVerifyButton({ doc, win, site, send }) {
     button.type = "button";
     if (site.className) button.className = site.className;
     if (site.style) button.style.cssText = site.style;
+    for (const [property, value] of Object.entries(LAYOUT)) button.style.setProperty(property, value, "important");
     button.addEventListener("click", () => verify(button));
     render(doc, button, null);
     return button;

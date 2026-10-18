@@ -257,6 +257,17 @@
           ],
           "default": null
         },
+        "page": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PageCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "signals": {
           "default": [],
           "items": {
@@ -631,6 +642,65 @@
         "order_type"
       ],
       "title": "OrderTicket",
+      "type": "object"
+    },
+    "PageCheck": {
+      "properties": {
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "title": {
+          "default": "",
+          "title": "Title",
+          "type": "string"
+        },
+        "claimed_firm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Claimed Firm"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PhishingReason"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "sensitive_fields": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensitive Fields",
+          "type": "array"
+        },
+        "matches_message": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Signal"
+          },
+          "title": "Matches Message",
+          "type": "array"
+        }
+      },
+      "required": [
+        "url",
+        "summary"
+      ],
+      "title": "PageCheck",
       "type": "object"
     },
     "PhishingCheck": {
@@ -1008,6 +1078,9 @@
     },
     "PhishingCheck": {
       "$ref": "#/$defs/PhishingCheck"
+    },
+    "PageCheck": {
+      "$ref": "#/$defs/PageCheck"
     },
     "FraudReport": {
       "$ref": "#/$defs/FraudReport"

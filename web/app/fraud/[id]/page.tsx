@@ -18,6 +18,7 @@ import { JevChart } from "@/components/fraud/JevChart";
 import { LikelihoodSeal } from "@/components/fraud/LikelihoodSeal";
 import { LinkTrail } from "@/components/fraud/LinkTrail";
 import { LiveView } from "@/components/fraud/LiveView";
+import { PagePanel } from "@/components/fraud/PagePanel";
 import { PhishingPanel } from "@/components/fraud/PhishingPanel";
 import { SignalLedger } from "@/components/fraud/SignalLedger";
 import styles from "@/components/fraud/fraud.module.css";
@@ -67,6 +68,11 @@ export default function FraudPage({ params }: { params: { id: string } }) {
       </section>
 
       {report?.phishing && <PhishingPanel phishing={report.phishing} />}
+
+      {/* The linked page, analysed on its own. A website capture is the page itself. */}
+      {report && report.source_type !== "website" && (report.page || (running && !!report.site_visit)) && (
+        <PagePanel page={report.page} running={running} noun={report.source_type === "email" ? "email" : "message"} />
+      )}
 
       {report && <LiveView reportId={report.report_id} running={running} />}
 

@@ -70,8 +70,8 @@
     "mail.google.com": async () => {
       const gmail = await import(chrome.runtime.getURL("detectors/gmail.js"));
       return {
-        style: "margin:0 0 0 12px;padding:4px 14px;border:1px solid #215758;border-radius:16px;background:#215758;" +
-          "color:#fff;font:500 13px/1.6 system-ui;cursor:pointer;vertical-align:middle;white-space:nowrap",
+        style: "margin:0 0 0 12px;padding:3px 12px 3px 14px;border:1px solid #215758;border-radius:16px;" +
+          "background:#215758;color:#fff;font:500 13px/20px system-ui;cursor:pointer;white-space:nowrap",
         slot: () => {
           const subject = document.querySelector("h2.hP");
           return subject?.parentElement ? { parent: subject.parentElement, before: subject.nextSibling } : null;
